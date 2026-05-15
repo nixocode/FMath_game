@@ -1,0 +1,1789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Financial Mathematics Practice</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        khan: '#1865f2',
+        khanDark: '#1240a0',
+        success: '#1b7d3a',
+        error: '#d92916',
+      }
+    }
+  }
+}
+</script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$','$']],
+    displayMath: [['$$','$$']]
+  },
+  startup: { typeset: false }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+<style>
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin:0; }
+.sidebar-link { display:block; padding:10px 16px; border-radius:8px; cursor:pointer; transition: background 0.15s; font-size:14px; }
+.sidebar-link:hover { background:#e8efff; }
+.sidebar-link.active { background:#1865f2; color:white; font-weight:600; }
+.option-btn { border:2px solid #e0e0e0; border-radius:12px; padding:14px 18px; cursor:pointer; transition:all 0.15s; text-align:left; background:white; display:flex; align-items:center; width:100%; }
+.option-btn:hover:not(.answered) { border-color:#1865f2; background:#f0f5ff; }
+.option-btn.correct { border-color:#1b7d3a; background:#e6f4ea; }
+.option-btn.incorrect { border-color:#d92916; background:#fce8e6; }
+.option-btn.correct-reveal { border-color:#1b7d3a; background:#e6f4ea; }
+.workings-panel { background:#f8f9fa; border:1px solid #e0e0e0; border-radius:12px; padding:20px; margin-top:16px; }
+.formula-panel { background:#fffbea; border:1px solid #f0d060; border-radius:12px; padding:20px; margin-bottom:16px; }
+.example-panel { background:#f0f5ff; border:1px solid #b0c4ff; border-radius:12px; padding:20px; margin-bottom:16px; }
+mjx-container { overflow-x:auto; }
+.diff-pill { padding:6px 16px; border-radius:20px; cursor:pointer; font-size:13px; font-weight:600; border:2px solid #e0e0e0; background:white; transition:all 0.15s; }
+.diff-pill:hover { border-color:#1865f2; }
+.diff-pill.active { background:#1865f2; color:white; border-color:#1865f2; }
+.timer-red { color:#d92916; animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+.modal-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:1000; }
+.modal-content { background:white; border-radius:16px; padding:32px; max-width:500px; width:90%; max-height:80vh; overflow-y:auto; }
+.amort-table { border-collapse:collapse; width:100%; font-size:13px; }
+.amort-table th { background:#1865f2; color:white; padding:8px 10px; text-align:center; font-weight:600; }
+.amort-table td { padding:7px 10px; text-align:right; border-bottom:1px solid #e5e7eb; font-variant-numeric:tabular-nums; }
+.amort-table tr:hover td { background:#f0f5ff; }
+.amort-table tr.row-active td { background:#dbeafe !important; }
+.cell-done { background:#f0fdf4 !important; color:#15803d; }
+.cell-current { background:#dbeafe !important; font-weight:700; animation: pulse-cell 1.2s infinite; }
+.cell-hidden { color:#d1d5db; font-style:italic; }
+@keyframes pulse-cell { 0%,100%{background:#dbeafe} 50%{background:#93c5fd} }
+.step-formula { background:#eff6ff; border:1px solid #93c5fd; border-radius:12px; padding:16px; margin-top:12px; }
+.type-pill { padding:8px 18px; border-radius:20px; cursor:pointer; font-size:13px; font-weight:600; border:2px solid #e0e0e0; background:white; transition:all 0.15s; }
+.type-pill:hover { border-color:#1865f2; }
+.type-pill.active { background:#1865f2; color:white; border-color:#1865f2; }
+.param-input { border:1px solid #d1d5db; border-radius:8px; padding:6px 10px; width:100px; font-size:14px; }
+.param-input:focus { outline:none; border-color:#1865f2; box-shadow:0 0 0 2px rgba(24,101,242,0.15); }
+.key-param { display:inline-flex; flex-direction:column; align-items:center; background:#f0f5ff; border:1px solid #bfdbfe; border-radius:10px; padding:6px 14px; min-width:90px; }
+.key-param .label { font-size:11px; color:#6b7280; font-weight:600; text-transform:uppercase; }
+.key-param .value { font-size:15px; color:#1e40af; font-weight:700; font-variant-numeric:tabular-nums; }
+.streak-badge { background:linear-gradient(135deg,#f59e0b,#f97316); color:white; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:700; }
+.progress-ring { transition: stroke-dashoffset 0.5s ease; }
+.fade-in { animation: fadeIn 0.3s ease-in; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef, useMemo } = React;
+
+// ============ RANDOM UTILITIES ============
+function seededRandom(seed) {
+  let s = Math.abs(seed) || 1;
+  return function() {
+    s = (s * 16807 + 0) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+}
+function pick(rng, arr) { return arr[Math.floor(rng() * arr.length)]; }
+
+const PRINCIPALS = [10000,20000,25000,30000,40000,50000,60000,75000,80000,100000,150000,200000];
+const SMALL_PRINCIPALS = [1000,2000,3000,5000,8000,10000,15000,20000];
+const RATES_PCT = [3,4,5,6,7,8,9,10];
+const FREQS = [{m:1,label:'annual',adv:'annually'},{m:2,label:'semi-annual',adv:'semi-annually'},{m:4,label:'quarterly',adv:'quarterly'},{m:12,label:'monthly',adv:'monthly'}];
+
+function fmt(x) { return Number(x.toFixed(2)); }
+function fmtN(x, d) { return Number(x.toFixed(d)); }
+
+// i_m (nominal annual rate, e.g. 6%) → I_m (effective rate per period, e.g. 3% for semi-annual)
+function nominalToEffective(nominalPct, freq) { return nominalPct / 100 / freq; }
+function fmtDisplay(x) {
+  if (typeof x !== 'number' || isNaN(x)) return '—';
+  return x.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function generateOptions(correct, traps, rng) {
+  const corr2 = fmt(correct);
+  const opts = [{ value: corr2, isCorrect: true }];
+  const used = new Set();
+  used.add(corr2);
+  for (const t of traps) {
+    const v = fmt(Number(t));
+    if (!isNaN(v) && isFinite(v) && v > 0 && !used.has(v) && Math.abs(v - corr2) > 0.01) {
+      opts.push({ value: v, isCorrect: false });
+      used.add(v);
+    }
+    if (opts.length >= 4) break;
+  }
+  let attempts = 0;
+  while (opts.length < 4 && attempts < 30) {
+    const factor = 0.85 + rng() * 0.3;
+    const v = fmt(corr2 * factor);
+    if (v > 0 && !used.has(v) && Math.abs(v - corr2) > 0.5) {
+      opts.push({ value: v, isCorrect: false });
+      used.add(v);
+    }
+    attempts++;
+  }
+  while (opts.length < 4) {
+    const off = (opts.length * 7 + 3) * (rng() > 0.5 ? 1 : -1);
+    const v = fmt(corr2 + corr2 * off * 0.01);
+    opts.push({ value: v > 0 ? v : fmt(corr2 * 1.1), isCorrect: false });
+  }
+  // Shuffle
+  for (let i = opts.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [opts[i], opts[j]] = [opts[j], opts[i]];
+  }
+  return opts;
+}
+
+// ============ MATHJAX HELPER ============
+// Typeset a specific element — avoids re-processing the entire page
+function typesetEl(el) {
+  if (!el || !window.MathJax || !MathJax.typesetPromise) return;
+  MathJax.typesetClear([el]);
+  MathJax.typesetPromise([el]).catch(()=>{});
+}
+
+// ============ TOPIC DEFINITIONS ============
+const TOPICS = [
+  {id:'simple', name:'Simple Interest', icon:'1'},
+  {id:'discount', name:'Commercial Discount', icon:'2'},
+  {id:'compound', name:'Compound Interest', icon:'3'},
+  {id:'annuity', name:'Annuities', icon:'4'},
+  {id:'french', name:'French Loan', icon:'5'},
+  {id:'italian', name:'Italian Loan', icon:'6'},
+  {id:'german', name:'German Loan', icon:'7'},
+  {id:'geometric', name:'Geometric Payment', icon:'8'},
+  {id:'leasing', name:'Financial Leasing', icon:'9'},
+  {id:'tables', name:'Amortization Tables', icon:'T'},
+];
+
+// ============ FORMULA SHEETS (matching FORMULAE EN.pdf) ============
+const FORMULA_SHEETS = {
+  simple: `**Simple Interest (Official Formulae)**
+$$V_t = V_0 \\cdot (1 + i \\cdot t)$$
+$$i = \\frac{V_t / V_0 - 1}{t}, \\quad t = \\frac{V_t / V_0 - 1}{i}$$
+$$\\text{Interest: } I = V_0 \\cdot i \\cdot t$$`,
+
+  discount: `**Commercial Discount (Official Formulae)**
+$$V_0 = V_t \\cdot (1 - d \\cdot t)$$
+$$D = V_t \\cdot d \\cdot t$$
+$$\\text{Equivalent simple rate: } i = \\frac{d}{1 - d \\cdot t}$$
+$$\\text{Cash value: } E_0 = V_t(1-dt) - g \\cdot V_t - G$$`,
+
+  compound: `**Compound Interest (Official Formulae)**
+$$I_m = \\frac{i_m}{m} \\quad \\text{(nominal } i_m \\text{ to effective per-period } I_m\\text{)}$$
+$$V_n = V_0 \\cdot (1 + I_m)^n \\qquad V_0 = V_n \\cdot (1 + I_m)^{-n}$$
+$$(1+I_m)^m = (1+I_n)^n \\quad \\text{(rate equivalence)}$$
+$$I_1 = (1+I_m)^m - 1 \\quad \\text{(EAR)}$$
+$$n = \\frac{\\ln(V_n/V_0)}{\\ln(1+I_m)}$$`,
+
+  annuity: `**Annuities (Official Formulae)**
+$$V_0 = P \\cdot \\frac{1-(1+I_m)^{-n}}{I_m} \\qquad V_0 = \\frac{P}{I_m} \\text{ (perpetuity)}$$
+$$\\text{Adjustment factors: } (1+I_m)^1 \\text{ pre-paid}, \\; (1+I_m)^{-d} \\text{ deferred}, \\; (1+I_m)^n \\text{ FV}$$
+$$\\text{Geometric (}q \\neq 1+I_m\\text{): } V_0^g = C_1 \\cdot \\frac{1-q^n(1+I_m)^{-n}}{1+I_m - q}$$
+$$\\text{Geometric (}q = 1+I_m\\text{): } V_0^g = C_1 \\cdot n \\cdot (1+I_m)^{-1}$$
+$$\\text{Arithmetic: } V_0^a = \\left(C_1+nh+\\frac{h}{I_m}\\right)\\frac{1-(1+I_m)^{-n}}{I_m} - \\frac{nh}{I_m}$$`,
+
+  french: `**French Loan — Constant Payment (Official Formulae)**
+$$\\alpha = \\frac{C}{\\dfrac{1-(1+I_m)^{-n}}{I_m}}$$
+$$DP_r = \\alpha \\cdot \\frac{1-(1+I_m)^{-(n-r)}}{I_m}$$
+$$I_r = DP_{r-1} \\cdot I_m, \\quad A_r = \\alpha - I_r$$
+$$M_r = C - DP_r = \\sum_{s=1}^{r} A_s$$`,
+
+  italian: `**Italian Loan — Constant Repayment (Official Formulae)**
+$$A = \\frac{C}{n} \\quad \\text{(constant)}, \\quad M_r = r \\cdot A$$
+$$DP_r = C - r \\cdot A = (n-r) \\cdot A$$
+$$I_r = I_m \\cdot DP_{r-1}, \\quad \\alpha_r = I_r + A$$
+$$\\alpha_r \\text{ follows arithmetic progression with } h = -I_m \\cdot A$$`,
+
+  german: `**German Loan — Pre-paid Interest (Official Formulae)**
+$$1 + I_m^{post} = (1 - I_m^{pre})^{-1} \\quad \\Rightarrow \\quad I_m^{post} = \\frac{I_m^{pre}}{1-I_m^{pre}}$$
+$$C \\cdot (1-I_m^{pre}) = \\alpha \\cdot \\frac{1-(1+I_m^{post})^{-n}}{I_m^{post}}$$
+$$\\text{Table: row 0 has } I_0 = C \\cdot I_m^{pre}, \\; DP_0 = C$$
+$$\\text{Row } n \\text{ has } I_n = 0$$`,
+
+  geometric: `**Geometric Payment Loan (Official Formulae)**
+$$\\alpha_r = \\alpha_1 \\cdot q^{r-1}$$
+$$\\text{If } q \\neq (1+I_m): \\quad \\alpha_1 = \\frac{C}{\\dfrac{1-q^n(1+I_m)^{-n}}{1+I_m-q}}$$
+$$\\text{If } q = (1+I_m): \\quad C = \\alpha_1 \\cdot n \\cdot (1+I_m)^{-1}$$
+$$I_r = I_m \\cdot DP_{r-1}, \\quad A_r = \\alpha_r - I_r, \\quad M_r = C - DP_r$$`,
+
+  leasing: `**Financial Leasing (Official Formulae)**
+$$PV = \\alpha \\cdot \\frac{1-(1+I_m)^{-n}}{I_m} + RV \\cdot (1+I_m)^{-n}$$
+$$\\alpha = \\frac{PV - RV \\cdot (1+I_m)^{-n}}{\\dfrac{1-(1+I_m)^{-n}}{I_m}}$$
+$$\\text{Total interest} = n \\cdot \\alpha + RV - PV$$`,
+
+  tables: `**Amortization Table Structure**
+$$\\text{Columns: } r, \\; \\alpha_r, \\; I_r, \\; A_r, \\; M_r, \\; DP_r$$
+$$\\text{Where: } \\alpha_r = I_r + A_r, \\quad M_r = C - DP_r$$
+$$I_r = I_m \\cdot DP_{r-1}, \\quad DP_r = DP_{r-1} - A_r$$`
+};
+
+// ============ QUESTION GENERATORS ============
+// All formulas match FORMULAE EN.pdf exactly.
+
+function genSimple(seed, difficulty) {
+  const rng = seededRandom(seed);
+  const tpl = Math.floor(rng() * 6);
+
+  if (difficulty === 'easy') {
+    if (tpl < 2) {
+      const V0 = pick(rng, SMALL_PRINCIPALS);
+      const iPct = pick(rng, [3,4,5,6,8,10]);
+      const i = iPct/100;
+      const t = pick(rng, [1,2,3,4,5]);
+      const Vt = fmt(V0*(1+i*t));
+      const trap1 = V0*Math.pow(1+i,t);
+      const trap2 = V0*(1+i*(t+1));
+      const trap3 = V0*(1+iPct*t);
+      return {
+        scenario: `You invest $V_0 = ${V0.toLocaleString()}$ EUR at a simple interest rate $i = ${iPct}\\%$ per year for $t = ${t}$ years.`,
+        question: `What is the future value $V_t$?`,
+        answer: Vt,
+        options: generateOptions(Vt, [trap1, trap2, trap3], rng),
+        workings: `$$V_t = V_0(1+i \\cdot t) = ${V0}(1 + ${i} \\times ${t}) = ${V0} \\times ${fmt(1+i*t)} = ${Vt}$$`,
+        templateId: 'si_e1'
+      };
+    } else if (tpl < 4) {
+      const V0 = pick(rng, SMALL_PRINCIPALS);
+      const iPct = pick(rng, [3,4,5,6,8]);
+      const i = iPct/100;
+      const t = pick(rng, [2,3,4,5]);
+      const Vt = V0*(1+i*t);
+      return {
+        scenario: `An investment yields $V_t = ${fmt(Vt)}$ EUR after $t = ${t}$ years at simple interest $i = ${iPct}\\%$ p.a.`,
+        question: `What was the initial investment $V_0$?`,
+        answer: fmt(V0),
+        options: generateOptions(V0, [Vt/(1+i*(t+1)), Vt/Math.pow(1+i,t), Vt*(1-i*t)], rng),
+        workings: `$$V_0 = \\frac{V_t}{1+i \\cdot t} = \\frac{${fmt(Vt)}}{1 + ${i} \\times ${t}} = \\frac{${fmt(Vt)}}{${fmt(1+i*t)}} = ${fmt(V0)}$$`,
+        templateId: 'si_e2'
+      };
+    } else {
+      const V0 = pick(rng, SMALL_PRINCIPALS);
+      const iPct = pick(rng, [4,5,6,8]);
+      const i = iPct/100;
+      const t = pick(rng, [2,3,5]);
+      const interest = fmt(V0*i*t);
+      return {
+        scenario: `You deposit $V_0 = ${V0.toLocaleString()}$ EUR at $i = ${iPct}\\%$ simple interest for $t = ${t}$ years.`,
+        question: `How much interest $I$ is earned?`,
+        answer: interest,
+        options: generateOptions(interest, [V0*i, V0*i*(t+1), V0*iPct/100*(t-1)], rng),
+        workings: `$$I = V_0 \\cdot i \\cdot t = ${V0} \\times ${i} \\times ${t} = ${interest}$$`,
+        templateId: 'si_e3'
+      };
+    }
+  } else if (difficulty === 'medium') {
+    if (tpl < 3) {
+      const V0 = pick(rng, SMALL_PRINCIPALS);
+      const iPct = pick(rng, [4,5,6,8]);
+      const i = iPct/100;
+      const months = pick(rng, [3,5,7,9,15,18]);
+      const t = months/12;
+      const Vt = fmt(V0*(1+i*t));
+      return {
+        scenario: `You invest $V_0 = ${V0.toLocaleString()}$ EUR at $i = ${iPct}\\%$ simple annual interest for ${months} months.`,
+        question: `What is the future value $V_t$?`,
+        answer: Vt,
+        options: generateOptions(Vt, [V0*(1+i*months), V0*Math.pow(1+i,t), V0*(1+i*Math.ceil(t))], rng),
+        workings: `$$t = \\frac{${months}}{12} = ${fmtN(t,6)}$$\n$$V_t = V_0(1+i \\cdot t) = ${V0}(1+${i} \\times ${fmtN(t,6)}) = ${Vt}$$`,
+        templateId: 'si_m1'
+      };
+    } else {
+      const V0 = pick(rng, SMALL_PRINCIPALS);
+      const iPct = pick(rng, [3,4,5,6,8]);
+      const i = iPct/100;
+      const days = pick(rng, [30,45,60,90,120,180,270]);
+      const t = days/365;
+      const Vt = fmt(V0*(1+i*t));
+      return {
+        scenario: `A bank deposit of $V_0 = ${V0.toLocaleString()}$ EUR at $i = ${iPct}\\%$ simple interest for ${days} days.`,
+        question: `What is the future value $V_t$? (Use 365-day year)`,
+        answer: Vt,
+        options: generateOptions(Vt, [V0*(1+i*days/360), V0*Math.pow(1+i,t), V0*(1+i)], rng),
+        workings: `$$t = \\frac{${days}}{365} = ${fmtN(t,6)}$$\n$$V_t = V_0(1+i \\cdot t) = ${V0}(1+${i} \\times ${fmtN(t,6)}) = ${Vt}$$`,
+        templateId: 'si_m2'
+      };
+    }
+  } else {
+    const V0 = pick(rng, [5000,10000,20000]);
+    const iPct = pick(rng, [4,5,6,8]);
+    const i = iPct/100;
+    const dep1 = pick(rng, [2000,3000,5000]);
+    const t1m = pick(rng, [3,4,6]);
+    const withdraw = pick(rng, [1000,1500,2000]);
+    const t2m = pick(rng, [7,8,9]);
+    const T = 12;
+    const bal = fmt(V0*(1+i*T/12) + dep1*(1+i*(T-t1m)/12) - withdraw*(1+i*(T-t2m)/12));
+    const trap1 = V0+dep1-withdraw;
+    const trap2 = (V0+dep1-withdraw)*(1+i);
+    return {
+      scenario: `Account opens Jan 1 with $V_0 = ${V0.toLocaleString()}$ EUR at $i = ${iPct}\\%$ simple annual interest. Month ${t1m}: deposit ${dep1.toLocaleString()} EUR. Month ${t2m}: withdraw ${withdraw.toLocaleString()} EUR. Settlement at month 12.`,
+      question: `What is the final balance?`,
+      answer: bal,
+      options: generateOptions(bal, [trap1, trap2, V0*(1+i)+dep1-withdraw], rng),
+      workings: `Each cash flow earns interest for its remaining time:\n$$${V0}(1+${i} \\times 1) + ${dep1}(1+${i} \\times \\frac{${T-t1m}}{12}) - ${withdraw}(1+${i} \\times \\frac{${T-t2m}}{12}) = ${bal}$$`,
+      templateId: 'si_h1'
+    };
+  }
+}
+
+function genDiscount(seed, difficulty) {
+  const rng = seededRandom(seed);
+  const tpl = Math.floor(rng() * 6);
+
+  if (difficulty === 'easy') {
+    if (tpl < 3) {
+      const Vt = pick(rng, [5000,10000,20000,30000,50000]);
+      const dPct = pick(rng, [2,3,4,5,6]);
+      const d = dPct/100;
+      const t = pick(rng, [1,2,3]);
+      const V0 = fmt(Vt*(1-d*t));
+      return {
+        scenario: `A bill with face value $V_t = ${Vt.toLocaleString()}$ EUR is discounted at $d = ${dPct}\\%$ per year, $t = ${t}$ year(s) before maturity.`,
+        question: `What is the present value $V_0$?`,
+        answer: V0,
+        options: generateOptions(V0, [Vt/(1+d*t), Vt*(1-d*(t+1)), Vt*Math.pow(1-d,t)], rng),
+        workings: `$$V_0 = V_t(1-d \\cdot t) = ${Vt}(1-${d} \\times ${t}) = ${Vt} \\times ${fmt(1-d*t)} = ${V0}$$`,
+        templateId: 'dc_e1'
+      };
+    } else {
+      const Vt = pick(rng, [10000,20000,50000]);
+      const dPct = pick(rng, [3,4,5,6]);
+      const d = dPct/100;
+      const t = pick(rng, [1,2,3]);
+      const disc = fmt(Vt*d*t);
+      return {
+        scenario: `A bill of $V_t = ${Vt.toLocaleString()}$ EUR is discounted at $d = ${dPct}\\%$ for $t = ${t}$ year(s).`,
+        question: `What is the discount amount $D$?`,
+        answer: disc,
+        options: generateOptions(disc, [Vt*d, Vt*d*(t+1), Vt*dPct*t], rng),
+        workings: `$$D = V_t \\cdot d \\cdot t = ${Vt} \\times ${d} \\times ${t} = ${disc}$$`,
+        templateId: 'dc_e2'
+      };
+    }
+  } else if (difficulty === 'medium') {
+    if (tpl < 3) {
+      const Vt = pick(rng, [10000,20000,50000,100000]);
+      const dPct = pick(rng, [4,5,6,8]);
+      const d = dPct/100;
+      const months = pick(rng, [3,4,6,9]);
+      const t = months/12;
+      const V0 = fmt(Vt*(1-d*t));
+      return {
+        scenario: `A bill of $V_t = ${Vt.toLocaleString()}$ EUR, $d = ${dPct}\\%$, ${months} months before maturity.`,
+        question: `What is $V_0$?`,
+        answer: V0,
+        options: generateOptions(V0, [Vt*(1-d*months), Vt/(1+d*t), Vt*Math.pow(1-d,t)], rng),
+        workings: `$$t = \\frac{${months}}{12} = ${fmtN(t,4)}$$\n$$V_0 = V_t(1-d \\cdot t) = ${Vt}(1-${d} \\times ${fmtN(t,4)}) = ${V0}$$`,
+        templateId: 'dc_m1'
+      };
+    } else {
+      const Vt = pick(rng, [20000,50000,100000]);
+      const dPct = pick(rng, [4,5,6,8]);
+      const d = dPct/100;
+      const months = pick(rng, [3,6,9]);
+      const t = months/12;
+      const iEquiv = d/(1-d*t);
+      return {
+        scenario: `Bill $V_t = ${Vt.toLocaleString()}$, $d = ${dPct}\\%$, ${months} months.`,
+        question: `Equivalent annual simple interest rate $i$ (as %)?`,
+        answer: fmt(iEquiv*100),
+        options: generateOptions(iEquiv*100, [dPct, d/(1-d)*100, dPct*1.15], rng),
+        workings: `$$i = \\frac{d}{1-d \\cdot t} = \\frac{${d}}{1-${d} \\times ${fmtN(t,4)}} = ${fmt(iEquiv*100)}\\%$$`,
+        templateId: 'dc_m2'
+      };
+    }
+  } else {
+    const Vt = pick(rng, [20000,50000,100000,150000]);
+    const dPct = pick(rng, [4,5,6,8]);
+    const d = dPct/100;
+    const gPct = pick(rng, [0.5,1,1.5]);
+    const g = gPct/100;
+    const G = pick(rng, [10,15,20,25,50]);
+    const months = pick(rng, [3,6,9]);
+    const t = months/12;
+    const E0 = fmt(Vt*(1-d*t) - g*Vt - G);
+    return {
+      scenario: `Bill $V_t = ${Vt.toLocaleString()}$ EUR, $d = ${dPct}\\%$, commission $g = ${gPct}\\%$, fixed fee $G = ${G}$ EUR, ${months} months.`,
+      question: `What is the effective cash value $E_0$?`,
+      answer: E0,
+      options: generateOptions(E0, [Vt*(1-d*t), Vt*(1-d*t)-g*Vt, E0*1.02], rng),
+      workings: `$$E_0 = V_t(1-dt) - g \\cdot V_t - G = ${Vt}(1-${d} \\times ${fmtN(t,4)}) - ${g} \\times ${Vt} - ${G} = ${E0}$$`,
+      templateId: 'dc_h1'
+    };
+  }
+}
+
+function genCompound(seed, difficulty) {
+  const rng = seededRandom(seed);
+  const tpl = Math.floor(rng() * 6);
+
+  if (difficulty === 'easy') {
+    if (tpl < 3) {
+      const V0 = pick(rng, PRINCIPALS);
+      const imPct = pick(rng, RATES_PCT);
+      const freq = pick(rng, FREQS);
+      const m = freq.m;
+      const years = pick(rng, [2,3,5]);
+      const n = years*m;
+      const Im = nominalToEffective(imPct, m);
+      const Vn = fmt(V0*Math.pow(1+Im,n));
+      return {
+        scenario: `Invest $V_0 = ${V0.toLocaleString()}$ EUR at $i_m = ${imPct}\\%$ compounded ${freq.adv} ($m=${m}$) for ${years} years ($n=${n}$).`,
+        question: `What is the future value $V_n$?`,
+        answer: Vn,
+        options: generateOptions(Vn, [V0*Math.pow(1+imPct/100,n), V0*(1+Im*n), V0*Math.pow(1+Im,years)], rng),
+        workings: `$$I_m = \\frac{i_m}{m} = \\frac{${imPct}\\%}{${m}} = ${fmtN(Im*100,4)}\\%$$\n$$V_n = V_0(1+I_m)^n = ${V0}(1+${fmtN(Im,6)})^{${n}} = ${Vn}$$`,
+        templateId: 'ci_e1'
+      };
+    } else {
+      const imPct = pick(rng, RATES_PCT);
+      const freq = pick(rng, FREQS.filter(f=>f.m>1));
+      const m = freq.m;
+      const Im = nominalToEffective(imPct, m);
+      const I1 = Math.pow(1+Im,m)-1;
+      return {
+        scenario: `A bank offers $i_m = ${imPct}\\%$ compounded ${freq.adv} ($m=${m}$).`,
+        question: `What is the effective annual rate $I_1$ (as %)?`,
+        answer: fmt(I1*100),
+        options: generateOptions(I1*100, [imPct, Im*m*100, (Math.pow(1+Im,m+1)-1)*100], rng),
+        workings: `$$I_m = \\frac{i_m}{m} = \\frac{${imPct}\\%}{${m}} = ${fmtN(Im*100,4)}\\%$$\n$$I_1 = (1+I_m)^m - 1 = (1+${fmtN(Im,6)})^{${m}} - 1 = ${fmtN(I1*100,4)}\\%$$`,
+        templateId: 'ci_e2'
+      };
+    }
+  } else if (difficulty === 'medium') {
+    if (tpl < 3) {
+      const imPct = pick(rng, RATES_PCT);
+      const freq = pick(rng, FREQS);
+      const m = freq.m;
+      const Im = nominalToEffective(imPct, m);
+      const I1 = Math.pow(1+Im,m)-1;
+      const freq2 = pick(rng, FREQS.filter(f=>f.m!==m));
+      const m2 = freq2.m;
+      const Im2 = Math.pow(1+I1,1/m2)-1;
+      return {
+        scenario: `Given $i_m = ${imPct}\\%$ compounded ${freq.adv} ($m=${m}$), find the equivalent ${freq2.label} rate.`,
+        question: `What is $I_{${m2}}$ (as %)?`,
+        answer: fmt(Im2*100),
+        options: generateOptions(Im2*100, [I1/m2*100, Im*100, imPct/m2], rng),
+        workings: `$$I_m = \\frac{i_m}{m} = \\frac{${imPct}\\%}{${m}} = ${fmtN(Im*100,4)}\\%$$\n$$I_1 = (1+I_m)^{${m}}-1 = ${fmtN(I1*100,4)}\\%$$\n$$I_{${m2}} = (1+I_1)^{1/${m2}}-1 = ${fmtN(Im2*100,4)}\\%$$`,
+        templateId: 'ci_m1'
+      };
+    } else {
+      const V0 = pick(rng, [10000,20000,50000]);
+      const imPct = pick(rng, [4,5,6,8]);
+      const freq = pick(rng, FREQS);
+      const m = freq.m;
+      const Im = nominalToEffective(imPct, m);
+      const years = pick(rng, [3,5,8]);
+      const n = years*m;
+      const Vn = V0*Math.pow(1+Im,n);
+      return {
+        scenario: `$V_0 = ${V0.toLocaleString()}$ EUR grows to $V_n = ${fmt(Vn)}$ EUR at $i_m = ${imPct}\\%$ compounded ${freq.adv}.`,
+        question: `How many periods $n$?`,
+        answer: n,
+        options: generateOptions(n, [years, n+m, Math.round(Math.log(Vn/V0)/Math.log(1+imPct/100))], rng),
+        workings: `$$I_m = \\frac{i_m}{m} = \\frac{${imPct}\\%}{${m}} = ${fmtN(Im*100,4)}\\%$$\n$$n = \\frac{\\ln(V_n/V_0)}{\\ln(1+I_m)} = \\frac{\\ln(${fmtN(Vn/V0,6)})}{\\ln(${fmtN(1+Im,6)})} = ${n}$$`,
+        templateId: 'ci_m2'
+      };
+    }
+  } else {
+    if (tpl < 3) {
+      const V0 = pick(rng, [50000,100000]);
+      const im1 = pick(rng, [4,5,6]);
+      const m1 = 4;
+      const years1 = pick(rng, [2,3]);
+      const im2 = pick(rng, [5,6,7]);
+      const m2 = 2;
+      const years2 = pick(rng, [2,3]);
+      const Im1 = nominalToEffective(im1, m1);
+      const Im2 = nominalToEffective(im2, m2);
+      const n1 = years1*m1;
+      const n2 = years2*m2;
+      const Vn = fmt(V0*Math.pow(1+Im1,n1)*Math.pow(1+Im2,n2));
+      return {
+        scenario: `Invest $V_0 = ${V0.toLocaleString()}$ EUR. First ${years1} years: $i_m = ${im1}\\%$ quarterly. Next ${years2} years: $i_m = ${im2}\\%$ semi-annually.`,
+        question: `Final value $V_n$?`,
+        answer: Vn,
+        options: generateOptions(Vn, [V0*Math.pow(1+im1/100,years1+years2), V0*Math.pow(1+Im1,n1+n2), V0*(1+Im1*n1)*(1+Im2*n2)], rng),
+        workings: `Phase 1: $I_{m_1} = \\frac{${im1}\\%}{${m1}} = ${fmtN(Im1*100,4)}\\%, \\; n_1=${n1}$. Phase 2: $I_{m_2} = \\frac{${im2}\\%}{${m2}} = ${fmtN(Im2*100,4)}\\%, \\; n_2=${n2}$\n$$V_n = ${V0} \\times (1+${fmtN(Im1,6)})^{${n1}} \\times (1+${fmtN(Im2,6)})^{${n2}} = ${Vn}$$`,
+        templateId: 'ci_h1'
+      };
+    } else {
+      // Exercise 4.2/4.5 style: find the required annual rate
+      const V0 = pick(rng, [10000,20000,30000,50000]);
+      const freq = pick(rng, FREQS.filter(f=>f.m>1));
+      const m = freq.m;
+      const years = pick(rng, [5,10,15,20]);
+      const n = years*m;
+      const targetMult = pick(rng, [1.5,2,2.5,3]);
+      const Vn = V0*targetMult;
+      const Im = Math.pow(Vn/V0, 1/n) - 1;
+      const imPct = fmt(Im*m*100);
+      return {
+        scenario: `You invest $V_0 = ${V0.toLocaleString()}$ EUR and want it to grow to $V_n = ${Vn.toLocaleString()}$ EUR in ${years} years, compounded ${freq.adv} ($m=${m}$).`,
+        question: `What nominal annual rate $i_m$ is needed (as %)?`,
+        answer: imPct,
+        options: generateOptions(imPct, [fmt(Im*100), fmt((targetMult-1)/years*100), fmt(Math.pow(Vn/V0,1/years)*100-100)], rng),
+        workings: `$$I_m = (V_n/V_0)^{1/n} - 1 = (${targetMult})^{1/${n}} - 1 = ${fmtN(Im*100,4)}\\%$$\n$$i_m = I_m \\times m = ${fmtN(Im*100,4)}\\% \\times ${m} = ${imPct}\\%$$`,
+        templateId: 'ci_h2'
+      };
+    }
+  }
+}
+
+function genAnnuity(seed, difficulty) {
+  const rng = seededRandom(seed);
+  const tpl = Math.floor(rng() * 6);
+
+  if (difficulty === 'easy') {
+    if (tpl < 3) {
+      const P = pick(rng, [200,500,800,1000,1500,2000]);
+      const imPct = pick(rng, [4,5,6,8]);
+      const freq = pick(rng, FREQS);
+      const m = freq.m;
+      const Im = nominalToEffective(imPct, m);
+      const years = pick(rng, [5,10,15]);
+      const n = years*m;
+      const PV = fmt(P*(1-Math.pow(1+Im,-n))/Im);
+      return {
+        scenario: `Ordinary annuity: $P = ${P}$ EUR/period, $n = ${n}$ periods, $i_m = ${imPct}\\%$ ${freq.adv}.`,
+        question: `Present value $V_0$?`,
+        answer: PV,
+        options: generateOptions(PV, [P*n, P*(1-Math.pow(1+imPct/100,-n))/(imPct/100), P*(1-Math.pow(1+Im,-n))/Im*(1+Im)], rng),
+        workings: `$$I_m = \\frac{i_m}{m} = \\frac{${imPct}\\%}{${m}} = ${fmtN(Im*100,4)}\\%$$\n$$V_0 = P \\cdot \\frac{1-(1+I_m)^{-n}}{I_m} = ${P} \\cdot \\frac{1-(1+${fmtN(Im,6)})^{-${n}}}{${fmtN(Im,6)}} = ${PV}$$`,
+        templateId: 'an_e1'
+      };
+    } else {
+      const P = pick(rng, [300,500,1000,1500]);
+      const imPct = pick(rng, [4,5,6]);
+      const freq = pick(rng, FREQS);
+      const m = freq.m;
+      const Im = nominalToEffective(imPct, m);
+      const years = pick(rng, [5,10]);
+      const n = years*m;
+      const FV = fmt(P*(Math.pow(1+Im,n)-1)/Im);
+      return {
+        scenario: `Save $P = ${P}$ EUR/period for $n = ${n}$ periods at $i_m = ${imPct}\\%$ ${freq.adv}.`,
+        question: `Future value $V_n$?`,
+        answer: FV,
+        options: generateOptions(FV, [P*n, P*(Math.pow(1+imPct/100,n)-1)/(imPct/100), FV*(1+Im)], rng),
+        workings: `$$I_m = \\frac{i_m}{m} = \\frac{${imPct}\\%}{${m}} = ${fmtN(Im*100,4)}\\%$$\n$$V_n = P \\cdot \\frac{(1+I_m)^n-1}{I_m} = ${P} \\cdot \\frac{(1+${fmtN(Im,6)})^{${n}}-1}{${fmtN(Im,6)}} = ${FV}$$`,
+        templateId: 'an_e2'
+      };
+    }
+  } else if (difficulty === 'medium') {
+    if (tpl < 3) {
+      const P = pick(rng, [500,800,1000,2000]);
+      const imPct = pick(rng, [4,5,6,8]);
+      const freq = pick(rng, FREQS);
+      const m = freq.m;
+      const Im = nominalToEffective(imPct, m);
+      const years = pick(rng, [5,10]);
+      const n = years*m;
+      const PV = fmt(P*(1-Math.pow(1+Im,-n))/Im*(1+Im));
+      const PVord = P*(1-Math.pow(1+Im,-n))/Im;
+      return {
+        scenario: `Annuity-due (pre-paid): $P = ${P}$ EUR at START of each period, $n = ${n}$, $i_m = ${imPct}\\%$ ${freq.adv}.`,
+        question: `Present value $V_0$?`,
+        answer: PV,
+        options: generateOptions(PV, [PVord, P*(1-Math.pow(1+Im,-(n+1)))/Im, PV/(1+Im)], rng),
+        workings: `$$I_m = \\frac{i_m}{m} = \\frac{${imPct}\\%}{${m}} = ${fmtN(Im*100,4)}\\%$$\n$$V_0 = P \\cdot \\frac{1-(1+I_m)^{-n}}{I_m} \\cdot (1+I_m) = ${P} \\times ${fmtN((1-Math.pow(1+Im,-n))/Im,4)} \\times ${fmtN(1+Im,6)} = ${PV}$$`,
+        templateId: 'an_m1'
+      };
+    } else {
+      const PV = pick(rng, [50000,100000,200000]);
+      const m = pick(rng, [4,12]);
+      const imPct = pick(rng, [4,5,6]);
+      const Im = nominalToEffective(imPct, m);
+      const years = pick(rng, [5,10,15]);
+      const n = years*m;
+      const P = fmt(PV*Im/(1-Math.pow(1+Im,-n)));
+      return {
+        scenario: `Need $V_0 = ${PV.toLocaleString()}$ EUR, repay in $n = ${n}$ equal payments at $i_m = ${imPct}\\%$ ${m===12?'monthly':'quarterly'}.`,
+        question: `Periodic payment $P$?`,
+        answer: P,
+        options: generateOptions(P, [PV/n, PV*imPct/100/n, P*(1+Im)], rng),
+        workings: `$$I_m = \\frac{i_m}{m} = \\frac{${imPct}\\%}{${m}} = ${fmtN(Im*100,4)}\\%$$\n$$P = \\frac{V_0 \\cdot I_m}{1-(1+I_m)^{-n}} = \\frac{${PV} \\times ${fmtN(Im,6)}}{1-(1+${fmtN(Im,6)})^{-${n}}} = ${P}$$`,
+        templateId: 'an_m2'
+      };
+    }
+  } else {
+    if (tpl < 3) {
+      // Deferred annuity
+      const P = pick(rng, [500,1000,1500]);
+      const imPct = pick(rng, [4,5,6]);
+      const freq = pick(rng, FREQS);
+      const m = freq.m;
+      const Im = nominalToEffective(imPct, m);
+      const years = pick(rng, [5,10]);
+      const n = years*m;
+      const d = pick(rng, [2,3,4])*m;
+      const PV = fmt(P*(1-Math.pow(1+Im,-n))/Im*Math.pow(1+Im,-d));
+      const PVnodefer = P*(1-Math.pow(1+Im,-n))/Im;
+      return {
+        scenario: `Deferred annuity: $P = ${P}$ EUR for $n = ${n}$ periods, starting after $d = ${d}$ period deferral. Rate $i_m = ${imPct}\\%$ ${freq.adv}.`,
+        question: `Present value $V_0$?`,
+        answer: PV,
+        options: generateOptions(PV, [PVnodefer, P*(1-Math.pow(1+Im,-(n+d)))/Im, PV*(1+Im)], rng),
+        workings: `$$I_m = \\frac{i_m}{m} = \\frac{${imPct}\\%}{${m}} = ${fmtN(Im*100,4)}\\%$$\n$$V_0 = P \\cdot \\frac{1-(1+I_m)^{-n}}{I_m} \\cdot (1+I_m)^{-d} = ${P} \\times ${fmtN((1-Math.pow(1+Im,-n))/Im,4)} \\times ${fmtN(Math.pow(1+Im,-d),6)} = ${PV}$$`,
+        templateId: 'an_h1'
+      };
+    } else if (tpl < 5) {
+      // Perpetuity (Exercise 5.10 style)
+      const P = pick(rng, [1000,2000,3000,5000]);
+      const imPct = pick(rng, [4,5,6,8]);
+      const freq = pick(rng, FREQS);
+      const m = freq.m;
+      const Im = nominalToEffective(imPct, m);
+      const PV = fmt(P/Im);
+      return {
+        scenario: `A perpetuity pays $P = ${P.toLocaleString()}$ EUR every period indefinitely. Rate $i_m = ${imPct}\\%$ ${freq.adv} ($m=${m}$).`,
+        question: `Present value $V_0^{\\infty}$?`,
+        answer: PV,
+        options: generateOptions(PV, [P*100, P/imPct*100, P/(Im*(1+Im))], rng),
+        workings: `$$I_m = \\frac{i_m}{m} = \\frac{${imPct}\\%}{${m}} = ${fmtN(Im*100,4)}\\%$$\n$$V_0^{\\infty} = \\frac{P}{I_m} = \\frac{${P}}{${fmtN(Im,6)}} = ${PV}$$`,
+        templateId: 'an_h2'
+      };
+    } else {
+      // Pre-paid deferred annuity (Exercise 5.1 style — combines two adjustment factors)
+      const P = pick(rng, [500,800,1000,1500]);
+      const imPct = pick(rng, [4,5,6]);
+      const m = 12;
+      const Im = nominalToEffective(imPct, m);
+      const n = pick(rng, [60,100,120]);
+      const d = pick(rng, [3,6,12]);
+      const PVbasic = P*(1-Math.pow(1+Im,-n))/Im;
+      const PV = fmt(PVbasic*(1+Im)*Math.pow(1+Im,-d));
+      return {
+        scenario: `Pre-paid deferred annuity: $P = ${P}$ EUR at the start of each month for $n = ${n}$ months, starting after $d = ${d}$ months deferral. Rate $i_m = ${imPct}\\%$ monthly.`,
+        question: `Present value $V_0$?`,
+        answer: PV,
+        options: generateOptions(PV, [fmt(PVbasic), fmt(PVbasic*Math.pow(1+Im,-d)), fmt(PVbasic*(1+Im))], rng),
+        workings: `$$I_m = \\frac{i_m}{m} = \\frac{${imPct}\\%}{${m}} = ${fmtN(Im*100,4)}\\%$$\n$$V_0 = P \\cdot \\frac{1-(1+I_m)^{-n}}{I_m} \\cdot (1+I_m)^1 \\cdot (1+I_m)^{-d}$$\n$$= ${P} \\times ${fmtN((1-Math.pow(1+Im,-n))/Im,4)} \\times ${fmtN(1+Im,6)} \\times ${fmtN(Math.pow(1+Im,-d),6)} = ${PV}$$`,
+        templateId: 'an_h3'
+      };
+    }
+  }
+}
+
+function genFrench(seed, difficulty) {
+  const rng = seededRandom(seed);
+  const tpl = Math.floor(rng() * 6);
+  const C = pick(rng, [50000,100000,150000,200000,300000]);
+  const imPct = pick(rng, [3,4,5,6]);
+  const freq = pick(rng, [{m:2,label:'semi-annual'},{m:4,label:'quarterly'},{m:12,label:'monthly'}]);
+  const m = freq.m;
+  const Im = nominalToEffective(imPct, m);
+  const years = pick(rng, [5,10,15,20]);
+  const n = years*m;
+  const annFactor = (1-Math.pow(1+Im,-n))/Im;
+  const alpha = fmt(C / annFactor);
+
+  if (difficulty === 'easy') {
+    return {
+      scenario: `French loan: $C = ${C.toLocaleString()}$ EUR, $i_m = ${imPct}\\%$ ${freq.adv}, ${years} years ($n=${n}$).`,
+      question: `Constant payment $\\alpha$?`,
+      answer: alpha,
+      options: generateOptions(alpha, [C/n, C*Im, C/(annFactor-1)], rng),
+      workings: `$$I_m = \\frac{i_m}{m} = \\frac{${imPct}\\%}{${m}} = ${fmtN(Im*100,4)}\\%$$\n$$\\alpha = \\frac{C}{\\frac{1-(1+I_m)^{-n}}{I_m}} = \\frac{${C}}{${fmtN(annFactor,4)}} = ${alpha}$$`,
+      templateId: 'fr_e1'
+    };
+  } else if (difficulty === 'medium') {
+    if (tpl < 3) {
+      const r = pick(rng, [1,2,5,Math.min(10,n-1)]);
+      const DPr = fmt(alpha*(1-Math.pow(1+Im,-(n-r)))/Im);
+      return {
+        scenario: `French loan: $C = ${C.toLocaleString()}$, $i_m = ${imPct}\\%$ ${freq.adv}, $n=${n}$, $\\alpha = ${alpha}$.`,
+        question: `Outstanding debt $DP_{${r}}$ after period ${r}?`,
+        answer: DPr,
+        options: generateOptions(DPr, [C-r*alpha, alpha*(1-Math.pow(1+Im,-(n-r+1)))/Im, C*(n-r)/n], rng),
+        workings: `$$DP_{${r}} = \\alpha \\cdot \\frac{1-(1+I_m)^{-(n-${r})}}{I_m} = ${alpha} \\times \\frac{1-(1+${fmtN(Im,6)})^{-${n-r}}}{${fmtN(Im,6)}} = ${DPr}$$`,
+        templateId: 'fr_m1'
+      };
+    } else {
+      const r = pick(rng, [1,2,5,10]);
+      const DPr_1 = (r===1) ? C : alpha*(1-Math.pow(1+Im,-(n-r+1)))/Im;
+      const Ir = fmt(DPr_1 * Im);
+      const Ar = fmt(alpha - Ir);
+      return {
+        scenario: `French loan: $C = ${C.toLocaleString()}$, $i_m = ${imPct}\\%$ ${freq.adv}, $n=${n}$, $\\alpha = ${alpha}$.`,
+        question: `Interest $I_{${r}}$ and repayment $A_{${r}}$ at period ${r}?  Give $A_{${r}}$.`,
+        answer: Ar,
+        options: generateOptions(Ar, [alpha, C/n, Ir], rng),
+        workings: `$$DP_{${r-1}} = ${fmt(DPr_1)}$$\n$$I_{${r}} = DP_{${r-1}} \\cdot I_m = ${fmt(DPr_1)} \\times ${fmtN(Im,6)} = ${Ir}$$\n$$A_{${r}} = \\alpha - I_{${r}} = ${alpha} - ${Ir} = ${Ar}$$`,
+        templateId: 'fr_m2'
+      };
+    }
+  } else {
+    const total = alpha*n;
+    const totalInt = fmt(total - C);
+    return {
+      scenario: `French loan: $C = ${C.toLocaleString()}$, $\\alpha = ${alpha}$, $n = ${n}$.`,
+      question: `Total interest paid over the loan life?`,
+      answer: totalInt,
+      options: generateOptions(totalInt, [C*Im*n, alpha*n, C*Im], rng),
+      workings: `$$\\text{Total paid} = \\alpha \\cdot n = ${alpha} \\times ${n} = ${fmt(total)}$$\n$$\\text{Total interest} = ${fmt(total)} - ${C} = ${totalInt}$$`,
+      templateId: 'fr_h1'
+    };
+  }
+}
+
+function genItalian(seed, difficulty) {
+  const rng = seededRandom(seed);
+  const tpl = Math.floor(rng() * 6);
+  const C = pick(rng, [60000,100000,150000,200000,300000]);
+  const imPct = pick(rng, [3,4,5,6]);
+  const freq = pick(rng, [{m:4,label:'quarterly'},{m:12,label:'monthly'}]);
+  const m = freq.m;
+  const Im = nominalToEffective(imPct, m);
+  const years = pick(rng, [5,10,15]);
+  const n = years*m;
+  const A = C/n;
+
+  if (difficulty === 'easy') {
+    if (tpl < 3) {
+      return {
+        scenario: `Italian loan: $C = ${C.toLocaleString()}$ EUR, $i_m = ${imPct}\\%$ ${freq.adv}, ${years} years ($n=${n}$).`,
+        question: `Constant principal repayment $A$?`,
+        answer: fmt(A),
+        options: generateOptions(A, [C/(n-1), C/years, C*Im/(1-Math.pow(1+Im,-n))], rng),
+        workings: `$$A = \\frac{C}{n} = \\frac{${C}}{${n}} = ${fmt(A)}$$`,
+        templateId: 'it_e1'
+      };
+    } else {
+      const r = pick(rng, [1,5,Math.min(10,n-1)]);
+      const DPr = fmt((n-r)*A);
+      return {
+        scenario: `Italian loan: $C = ${C.toLocaleString()}$, $n=${n}$.`,
+        question: `Outstanding debt $DP_{${r}}$ after period ${r}?`,
+        answer: DPr,
+        options: generateOptions(DPr, [C-r*C/(n+1), (n-r+1)*A, C-r*C/years], rng),
+        workings: `$$DP_{${r}} = (n-r) \\cdot A = (${n}-${r}) \\times ${fmtN(A,2)} = ${DPr}$$`,
+        templateId: 'it_e2'
+      };
+    }
+  } else if (difficulty === 'medium') {
+    const r = pick(rng, [1,5,10,Math.min(20,n-1)]);
+    const DPr_1 = (n-r+1)*A;
+    const Ir = fmt(DPr_1*Im);
+    const alphar = fmt(A + Ir);
+    return {
+      scenario: `Italian loan: $C = ${C.toLocaleString()}$, $i_m = ${imPct}\\%$ ${freq.adv}, $n=${n}$.`,
+      question: `Total payment $\\alpha_{${r}}$ at period ${r}?`,
+      answer: alphar,
+      options: generateOptions(alphar, [A+C*Im, C/n+C*Im, A+(n-r)*A*Im], rng),
+      workings: `$$I_m = \\frac{i_m}{m} = \\frac{${imPct}\\%}{${m}} = ${fmtN(Im*100,4)}\\%$$\n$$A = \\frac{C}{n} = ${fmtN(A,2)}$$\n$$DP_{${r-1}} = (n-(${r}-1)) \\cdot A = ${n-r+1} \\times ${fmtN(A,2)} = ${fmt(DPr_1)}$$\n$$I_{${r}} = DP_{${r-1}} \\cdot I_m = ${fmt(DPr_1)} \\times ${fmtN(Im,6)} = ${Ir}$$\n$$\\alpha_{${r}} = A + I_{${r}} = ${fmtN(A,2)} + ${Ir} = ${alphar}$$`,
+      templateId: 'it_m1'
+    };
+  } else {
+    const totalI = fmt(Im*C*(n+1)/2);
+    return {
+      scenario: `Italian loan: $C = ${C.toLocaleString()}$, $i_m = ${imPct}\\%$ ${freq.adv}, $n=${n}$.`,
+      question: `Total interest paid over the loan?`,
+      answer: totalI,
+      options: generateOptions(totalI, [C*Im*n, C*Im*n/2, Im*C*n], rng),
+      workings: `$$I_m = \\frac{i_m}{m} = \\frac{${imPct}\\%}{${m}} = ${fmtN(Im*100,4)}\\%$$\n$$\\sum I_r = I_m \\cdot C \\cdot \\frac{n+1}{2} = ${fmtN(Im,6)} \\times ${C} \\times \\frac{${n+1}}{2} = ${totalI}$$`,
+      templateId: 'it_h1'
+    };
+  }
+}
+
+function genGerman(seed, difficulty) {
+  const rng = seededRandom(seed);
+  const tpl = Math.floor(rng() * 6);
+
+  if (difficulty === 'easy') {
+    const ImStarPct = pick(rng, [3,4,5,6,7,8]);
+    const ImStar = ImStarPct/100;
+    const Im = ImStar/(1-ImStar);
+    return {
+      scenario: `German loan with pre-paid rate $I_m^{pre} = ${ImStarPct}\\%$.`,
+      question: `Equivalent post-paid rate $I_m^{post}$ (as %)?`,
+      answer: fmt(Im*100),
+      options: generateOptions(Im*100, [ImStarPct, ImStar/(1+ImStar)*100, ImStarPct*1.05], rng),
+      workings: `$$I_m^{post} = \\frac{I_m^{pre}}{1-I_m^{pre}} = \\frac{${ImStar}}{1-${ImStar}} = \\frac{${ImStar}}{${fmtN(1-ImStar,4)}} = ${fmtN(Im*100,4)}\\%$$`,
+      templateId: 'ge_e1'
+    };
+  } else if (difficulty === 'medium') {
+    const C = pick(rng, [100000,200000,300000]);
+    const imStarPct = pick(rng, [4,5,6]);
+    const m = pick(rng, [4,12]);
+    const ImStar = nominalToEffective(imStarPct, m);
+    const Im = ImStar/(1-ImStar);
+    const years = pick(rng, [5,10,15]);
+    const n = years*m;
+    const annFactor = (1-Math.pow(1+Im,-n))/Im;
+    const alpha = fmt(C / annFactor);
+    return {
+      scenario: `German loan: $C = ${C.toLocaleString()}$, pre-paid nominal $i_m^{pre} = ${imStarPct}\\%$ ${m===12?'monthly':'quarterly'}, ${years} years ($n=${n}$).`,
+      question: `Constant payment $\\alpha$ (using post-paid rate)?`,
+      answer: alpha,
+      options: generateOptions(alpha, [C*ImStar/(1-Math.pow(1+ImStar,-n)), C/n+C*Im, C/(annFactor+1)], rng),
+      workings: `$$I_m^{pre} = \\frac{i_m^{pre}}{m} = \\frac{${imStarPct}\\%}{${m}} = ${fmtN(ImStar*100,4)}\\%$$\n$$I_m^{post} = \\frac{I_m^{pre}}{1-I_m^{pre}} = \\frac{${fmtN(ImStar,6)}}{1-${fmtN(ImStar,6)}} = ${fmtN(Im*100,4)}\\%$$\n$$\\alpha = \\frac{C}{\\frac{1-(1+I_m^{post})^{-n}}{I_m^{post}}} = \\frac{${C}}{${fmtN(annFactor,4)}} = ${alpha}$$`,
+      templateId: 'ge_m1'
+    };
+  } else {
+    const C = pick(rng, [150000,200000,300000]);
+    const imStarPct = pick(rng, [4,5,6]);
+    const m = 12;
+    const ImStar = nominalToEffective(imStarPct, m);
+    const Im = ImStar/(1-ImStar);
+    const years = pick(rng, [10,15]);
+    const n = years*m;
+    const annFactor = (1-Math.pow(1+Im,-n))/Im;
+    const alpha = C / annFactor;
+    const r = pick(rng, [1,5,12,24]);
+    const DPr_1 = (r===1) ? C : alpha*(1-Math.pow(1+Im,-(n-r+1)))/Im;
+    const Ir = DPr_1*Im;
+    const Ar = fmt(alpha - Ir);
+    return {
+      scenario: `German loan: $C = ${C.toLocaleString()}$, $i_m^{pre} = ${imStarPct}\\%$ monthly, ${years} years. Find row ${r}.`,
+      question: `Principal repayment $A_{${r}}$?`,
+      answer: Ar,
+      options: generateOptions(Ar, [fmt(alpha), C/n, Ar*(1+Im)], rng),
+      workings: `$$I_m^{pre} = \\frac{i_m^{pre}}{m} = \\frac{${imStarPct}\\%}{${m}} = ${fmtN(ImStar*100,4)}\\%, \\quad I_m^{post} = \\frac{I_m^{pre}}{1-I_m^{pre}} = ${fmtN(Im*100,4)}\\%$$\n$$\\alpha = ${fmt(alpha)}$$\n$$DP_{${r-1}} = ${fmt(DPr_1)}$$\n$$I_{${r}} = ${fmt(DPr_1)} \\times ${fmtN(Im,6)} = ${fmt(Ir)}$$\n$$A_{${r}} = \\alpha - I_{${r}} = ${fmt(alpha)} - ${fmt(Ir)} = ${Ar}$$`,
+      templateId: 'ge_h1'
+    };
+  }
+}
+
+function genGeometric(seed, difficulty) {
+  const rng = seededRandom(seed);
+  const tpl = Math.floor(rng() * 6);
+
+  if (difficulty === 'easy') {
+    const alpha1 = pick(rng, [500,800,1000,1200,1500,2000]);
+    const qPct = pick(rng, [2,3,4,5]);
+    const q = 1 + qPct/100;
+    const r = pick(rng, [2,3,5,8]);
+    const alphar = fmt(alpha1*Math.pow(q,r-1));
+    return {
+      scenario: `Geometric payment loan: $\\alpha_1 = ${alpha1}$ EUR, $q = ${q.toFixed(2)}$ (${qPct}% growth).`,
+      question: `What is $\\alpha_{${r}}$?`,
+      answer: alphar,
+      options: generateOptions(alphar, [alpha1*Math.pow(q,r), alpha1*r*q, alpha1+alpha1*qPct/100*(r-1)], rng),
+      workings: `$$\\alpha_{${r}} = \\alpha_1 \\cdot q^{r-1} = ${alpha1} \\times ${q.toFixed(2)}^{${r-1}} = ${alpha1} \\times ${fmtN(Math.pow(q,r-1),6)} = ${alphar}$$`,
+      templateId: 'gp_e1'
+    };
+  } else if (difficulty === 'medium') {
+    const C = pick(rng, [100000,200000,300000]);
+    const imPct = pick(rng, [4,5,6]);
+    const m = pick(rng, [4,12]);
+    const Im = nominalToEffective(imPct, m);
+    const years = pick(rng, [5,10]);
+    const n = years*m;
+    const qPct = pick(rng, [0.1,0.2,0.3]);
+    const q = 1+qPct/100;
+    const geoFactor = (1 - Math.pow(q,n)*Math.pow(1+Im,-n)) / ((1+Im) - q);
+    const alpha1 = fmt(C / geoFactor);
+    return {
+      scenario: `Geometric loan: $C = ${C.toLocaleString()}$, $i_m = ${imPct}\\%$ ${m===12?'monthly':'quarterly'}, ${years} years, $q = ${q.toFixed(4)}$.`,
+      question: `First payment $\\alpha_1$?`,
+      answer: alpha1,
+      options: generateOptions(alpha1, [C*Im/(1-Math.pow(1+Im,-n)), C/n, alpha1*(1+Im)], rng),
+      workings: `$$I_m = \\frac{i_m}{m} = \\frac{${imPct}\\%}{${m}} = ${fmtN(Im*100,4)}\\%$$\n$$\\alpha_1 = \\frac{C}{\\frac{1-q^n(1+I_m)^{-n}}{1+I_m-q}} = \\frac{${C}}{${fmtN(geoFactor,4)}} = ${alpha1}$$`,
+      templateId: 'gp_m1'
+    };
+  } else {
+    const C = pick(rng, [200000,300000]);
+    const imPct = pick(rng, [4,5,6]);
+    const m = 12;
+    const Im = nominalToEffective(imPct, m);
+    const years = pick(rng, [10,15]);
+    const n = years*m;
+    const qPct = pick(rng, [0.15,0.2]);
+    const q = 1+qPct/100;
+    const geoFactor = (1 - Math.pow(q,n)*Math.pow(1+Im,-n)) / ((1+Im) - q);
+    const alpha1 = C / geoFactor;
+    const r = pick(rng, [12,24,36]);
+    let DP = C;
+    for (let k = 1; k <= r; k++) {
+      const ak = alpha1 * Math.pow(q, k-1);
+      const Ik = DP * Im;
+      const Ak = ak - Ik;
+      DP = DP - Ak;
+    }
+    const DPr = fmt(DP);
+    return {
+      scenario: `Geometric loan: $C = ${C.toLocaleString()}$, $i_m = ${imPct}\\%$ monthly, ${years} years, $q = ${q.toFixed(4)}$. $\\alpha_1 = ${fmt(alpha1)}$.`,
+      question: `Outstanding debt $DP_{${r}}$?`,
+      answer: DPr,
+      options: generateOptions(DPr, [C-r*alpha1, C*Math.pow(1+Im,r), C*(n-r)/n], rng),
+      workings: `$$I_m = \\frac{i_m}{m} = \\frac{${imPct}\\%}{${m}} = ${fmtN(Im*100,4)}\\%$$\n$$\\alpha_1 = ${fmt(alpha1)}, \\quad \\text{iterating row by row...}$$\n$$DP_{${r}} = ${DPr}$$`,
+      templateId: 'gp_h1'
+    };
+  }
+}
+
+function genLeasing(seed, difficulty) {
+  const rng = seededRandom(seed);
+  const tpl = Math.floor(rng() * 6);
+  const PV = pick(rng, [20000,30000,50000,80000,100000]);
+  const imPct = pick(rng, [4,5,6,7]);
+  const m = 12;
+  const Im = nominalToEffective(imPct, m);
+  const years = pick(rng, [3,4,5]);
+  const n = years*m;
+  const RVpct = pick(rng, [5,10,15,20]);
+  const RV = PV*RVpct/100;
+  const annFactor = (1-Math.pow(1+Im,-n))/Im;
+  const alpha = fmt((PV - RV*Math.pow(1+Im,-n)) / annFactor);
+
+  if (difficulty === 'easy') {
+    return {
+      scenario: `Leasing: asset $PV = ${PV.toLocaleString()}$ EUR, $i_m = ${imPct}\\%$ monthly, ${years} years ($n=${n}$), $RV = ${RV.toLocaleString()}$ EUR.`,
+      question: `Lease payment $\\alpha$?`,
+      answer: alpha,
+      options: generateOptions(alpha, [PV/annFactor, (PV-RV)/n, PV*Im/(1-Math.pow(1+Im,-n))], rng),
+      workings: `$$I_m = \\frac{i_m}{m} = \\frac{${imPct}\\%}{${m}} = ${fmtN(Im*100,4)}\\%$$\n$$\\alpha = \\frac{PV - RV(1+I_m)^{-n}}{\\frac{1-(1+I_m)^{-n}}{I_m}} = \\frac{${PV} - ${RV} \\times ${fmtN(Math.pow(1+Im,-n),6)}}{${fmtN(annFactor,4)}} = \\frac{${fmt(PV - RV*Math.pow(1+Im,-n))}}{${fmtN(annFactor,4)}} = ${alpha}$$`,
+      templateId: 'le_e1'
+    };
+  } else if (difficulty === 'medium') {
+    const totalInt = fmt(n*alpha + RV - PV);
+    return {
+      scenario: `Leasing: $PV = ${PV.toLocaleString()}$, $\\alpha = ${alpha}$, $n=${n}$, $RV = ${RV.toLocaleString()}$.`,
+      question: `Total interest paid?`,
+      answer: totalInt,
+      options: generateOptions(totalInt, [n*alpha-PV, PV*Im*n, totalInt*1.05], rng),
+      workings: `$$\\text{Total interest} = n \\cdot \\alpha + RV - PV = ${n} \\times ${alpha} + ${RV} - ${PV} = ${totalInt}$$`,
+      templateId: 'le_m1'
+    };
+  } else {
+    const RVcalc = fmt((PV - alpha*annFactor) / Math.pow(1+Im,-n));
+    return {
+      scenario: `Leasing: $PV = ${PV.toLocaleString()}$, $\\alpha = ${alpha}$ monthly, $i_m = ${imPct}\\%$, $n=${n}$.`,
+      question: `Residual value $RV$?`,
+      answer: RVcalc,
+      options: generateOptions(RVcalc, [PV-alpha*n, PV*Math.pow(1+Im,-n), PV*0.1], rng),
+      workings: `$$RV = \\frac{PV - \\alpha \\cdot \\frac{1-(1+I_m)^{-n}}{I_m}}{(1+I_m)^{-n}} = \\frac{${PV} - ${alpha} \\times ${fmtN(annFactor,4)}}{${fmtN(Math.pow(1+Im,-n),6)}} = ${RVcalc}$$`,
+      templateId: 'le_h1'
+    };
+  }
+}
+
+const GENERATORS = {
+  simple: genSimple, discount: genDiscount, compound: genCompound,
+  annuity: genAnnuity, french: genFrench, italian: genItalian,
+  german: genGerman, geometric: genGeometric, leasing: genLeasing,
+};
+
+// ============ WORKED EXAMPLES ============
+function getWorkedExample(topicId, difficulty) {
+  const ex = {
+    simple: {
+      easy: { title:'Simple Interest — Future Value', content:`Problem: $V_0 = 8{,}000$ EUR, $i = 5\\%$, $t = 3$ years.\n\n$$V_t = V_0(1+it) = 8{,}000(1+0.05 \\times 3) = 8{,}000 \\times 1.15 = 9{,}200$$` },
+      medium: { title:'Simple Interest — Months', content:`Problem: $V_0 = 12{,}000$ EUR, $i = 6\\%$, 9 months.\n\n$$t = 9/12 = 0.75$$\n$$V_t = 12{,}000(1+0.06 \\times 0.75) = 12{,}540$$` },
+      hard: { title:'Bank Settlement', content:`Problem: $V_0=10{,}000$, $i=6\\%$. Month 4: +3,000. Month 8: -2,000. Settlement at 12.\n\n$$10{,}000(1.06) + 3{,}000(1+0.06 \\times 8/12) - 2{,}000(1+0.06 \\times 4/12) = 11{,}680$$` }
+    },
+    discount: {
+      easy: { title:'Commercial Discount', content:`Problem: $V_t=20{,}000$, $d=4\\%$, $t=2$.\n\n$$V_0 = 20{,}000(1-0.04 \\times 2) = 18{,}400$$` },
+      medium: { title:'Equivalent Rate', content:`Problem: $V_t=50{,}000$, $d=5\\%$, 6 months.\n\n$$i = \\frac{d}{1-dt} = \\frac{0.05}{1-0.025} = 5.1282\\%$$` },
+      hard: { title:'Discount with Fees', content:`Problem: $V_t=80{,}000$, $d=6\\%$, $g=1\\%$, $G=20$, 3 months.\n\n$$E_0 = 80{,}000(1-0.015) - 800 - 20 = 77{,}980$$` }
+    },
+    compound: {
+      easy: { title:'Compound Interest — FV', content:`Problem: $V_0=25{,}000$, $i_m=6\\%$ quarterly, 5 years.\n\n$$I_m = \\frac{i_m}{m} = \\frac{6\\%}{4} = 1.5\\%, \\quad n = 5 \\times 4 = 20$$\n$$V_n = V_0(1+I_m)^n = 25{,}000(1.015)^{20} = 33{,}671.38$$` },
+      medium: { title:'Rate Equivalence', content:`Problem: Convert $i_m=8\\%$ quarterly to monthly.\n\n$$I_4 = \\frac{i_m}{m} = \\frac{8\\%}{4} = 2\\%$$\n$$I_1 = (1+I_4)^4 - 1 = (1.02)^4 - 1 = 8.2432\\%$$\n$$I_{12} = (1+I_1)^{1/12}-1 = (1.082432)^{1/12}-1 = 0.6623\\%$$` },
+      hard: { title:'Variable Rate', content:`Problem: $V_0=100{,}000$. 3yr at $i_m=4\\%$ quarterly, then 2yr at $i_m=6\\%$ semi-annually.\n\n$$I_{m_1} = \\frac{4\\%}{4} = 1\\%, \\; n_1=12. \\quad I_{m_2} = \\frac{6\\%}{2} = 3\\%, \\; n_2=4$$\n$$V_n = 100{,}000(1.01)^{12}(1.03)^4 = 126{,}834.81$$` }
+    },
+    annuity: {
+      easy: { title:'PV Ordinary Annuity', content:`Problem: $P=1{,}000$/month, $i_m=6\\%$ monthly, 10 years.\n\n$$I_m = \\frac{i_m}{m} = \\frac{6\\%}{12} = 0.5\\%, \\quad n = 10 \\times 12 = 120$$\n$$V_0 = P \\cdot \\frac{1-(1+I_m)^{-n}}{I_m} = 1{,}000 \\cdot \\frac{1-1.005^{-120}}{0.005} = 90{,}073.45$$` },
+      medium: { title:'Annuity-Due', content:`Problem: $P=800$ pre-paid monthly, $i_m=5\\%$, 5 years.\n\n$$I_m = \\frac{i_m}{m} = \\frac{5\\%}{12} = 0.4167\\%, \\quad n = 60$$\n$$V_0 = P \\cdot \\frac{1-(1+I_m)^{-n}}{I_m} \\cdot (1+I_m) = 800 \\cdot \\frac{1-1.004167^{-60}}{0.004167} \\cdot 1.004167 = 42{,}590.49$$` },
+      hard: { title:'Deferred Annuity', content:`Problem: $P=1{,}000$, $n=60$, deferred $d=24$ periods, $I_m=0.005$.\n\n$$V_0 = P \\cdot \\frac{1-(1+I_m)^{-n}}{I_m} \\cdot (1+I_m)^{-d} = 1{,}000 \\cdot \\frac{1-1.005^{-60}}{0.005} \\cdot 1.005^{-24} = 46{,}225.15$$` }
+    },
+    french: {
+      easy: { title:'French — Constant Payment', content:`Problem: $C=200{,}000$, $i_m=6\\%$ monthly, 20 years.\n\n$$I_m = \\frac{i_m}{m} = \\frac{6\\%}{12} = 0.5\\%, \\quad n = 20 \\times 12 = 240$$\n$$\\alpha = \\frac{C}{\\frac{1-(1+I_m)^{-n}}{I_m}} = \\frac{200{,}000}{\\frac{1-1.005^{-240}}{0.005}} = \\frac{200{,}000}{139.5808} = 1{,}432.86$$` },
+      medium: { title:'Outstanding Debt', content:`Problem: Same loan. Find $DP_{60}$.\n\n$$DP_{60} = 1{,}432.86 \\times \\frac{1-1.005^{-180}}{0.005} = 1{,}432.86 \\times 118.504 = 169{,}810.07$$` },
+      hard: { title:'Total Interest', content:`Problem: Same loan.\n\n$$\\text{Total} = 1{,}432.86 \\times 240 = 343{,}886.40$$\n$$\\text{Interest} = 343{,}886.40 - 200{,}000 = 143{,}886.40$$` }
+    },
+    italian: {
+      easy: { title:'Italian — Constant Repayment', content:`Problem: $C=120{,}000$, $n=60$ monthly.\n\n$$A = 120{,}000/60 = 2{,}000$$\n$$DP_{10} = (60-10) \\times 2{,}000 = 100{,}000$$` },
+      medium: { title:'Payment at Period r', content:`Problem: $C=200{,}000$, $I_m=0.005$, $n=120$. Find $\\alpha_5$.\n\n$$A=1{,}666.67, DP_4 = 116 \\times 1{,}666.67 = 193{,}333.33$$\n$$I_5 = 193{,}333.33 \\times 0.005 = 966.67$$\n$$\\alpha_5 = 2{,}633.33$$` },
+      hard: { title:'Total Interest', content:`Problem: $C=120{,}000$, $I_m=0.005$, $n=60$.\n\n$$\\sum I_r = 0.005 \\times 120{,}000 \\times 61/2 = 18{,}300$$` }
+    },
+    german: {
+      easy: { title:'Rate Conversion', content:`Problem: $I_m^{pre}=5\\%$.\n\n$$I_m^{post} = \\frac{I_m^{pre}}{1-I_m^{pre}} = \\frac{0.05}{1-0.05} = \\frac{0.05}{0.95} = 5.2632\\%$$` },
+      medium: { title:'German Payment', content:`Problem: $C=200{,}000$, $i_m^{pre}=6\\%$ monthly, 15 years.\n\n$$I_m^{pre} = \\frac{i_m^{pre}}{m} = \\frac{6\\%}{12} = 0.5\\%, \\quad I_m^{post} = \\frac{0.005}{1-0.005} = 0.5025\\%$$\n$$\\alpha = \\frac{C}{\\frac{1-(1+I_m^{post})^{-n}}{I_m^{post}}} = \\frac{200{,}000}{\\frac{1-1.005025^{-180}}{0.005025}} = 1{,}690.46$$` },
+      hard: { title:'Amortization Row', content:`Problem: Same loan. Row 12.\n\n$$DP_{11} = \\alpha \\cdot \\frac{1-1.005025^{-169}}{0.005025} = 192{,}423.57$$\n$$I_{12} = 192{,}423.57 \\times 0.005025 = 966.93$$\n$$A_{12} = 1{,}690.46 - 966.93 = 723.53$$` }
+    },
+    geometric: {
+      easy: { title:'Geometric Payment', content:`Problem: $\\alpha_1=1{,}000$, $q=1.03$. Find $\\alpha_5$.\n\n$$\\alpha_5 = 1{,}000 \\times 1.03^4 = 1{,}125.51$$` },
+      medium: { title:'First Payment', content:`Problem: $C=200{,}000$, $I_m=0.005$, $n=180$, $q=1.002$.\n\n$$\\alpha_1 = \\frac{200{,}000}{\\frac{1-1.002^{180} \\cdot 1.005^{-180}}{1.005-1.002}} = 1{,}444.48$$` },
+      hard: { title:'Outstanding Debt', content:`Problem: Iterate row-by-row from $DP_0=C$ to find $DP_r$.` }
+    },
+    leasing: {
+      easy: { title:'Lease Payment', content:`Problem: $PV=40{,}000$, $i_m=5\\%$ monthly, $n=48$, $RV=6{,}000$.\n\n$$I_m = \\frac{i_m}{m} = \\frac{5\\%}{12} = 0.4167\\%$$\n$$\\alpha = \\frac{PV - RV(1+I_m)^{-n}}{\\frac{1-(1+I_m)^{-n}}{I_m}} = \\frac{40{,}000-6{,}000 \\times 1.004167^{-48}}{\\frac{1-1.004167^{-48}}{0.004167}} = 806.75$$` },
+      medium: { title:'Total Interest', content:`Problem: Same lease: $\\alpha=806.75$, $n=48$, $RV=6{,}000$, $PV=40{,}000$.\n\n$$\\text{Total interest} = n \\cdot \\alpha + RV - PV = 48 \\times 806.75 + 6{,}000 - 40{,}000 = 4{,}724.00$$` },
+      hard: { title:'Find RV', content:`Problem: Given $PV$, $\\alpha$, $I_m$, and $n$, solve for $RV$.\n\n$$RV = \\frac{PV - \\alpha \\cdot \\frac{1-(1+I_m)^{-n}}{I_m}}{(1+I_m)^{-n}}$$` }
+    },
+  };
+  return ex[topicId]?.[difficulty] || {title:'Example', content:'Select a topic.'};
+}
+
+// ============ AMORTIZATION TABLE BUILDER ============
+function computeAmortTable(type, C, Im, n, q, RV, ImPre) {
+  const rows = [];
+  if (type === 'french') {
+    const annF = (1-Math.pow(1+Im,-n))/Im;
+    const alpha = C / annF;
+    let DP = C;
+    rows.push({r:0, alpha:null, I:null, A:null, M:0, DP:C});
+    for (let r=1; r<=n; r++) {
+      const Ir = DP * Im;
+      const Ar = alpha - Ir;
+      const Mr = rows[r-1].M + Ar;
+      DP = DP - Ar;
+      rows.push({r, alpha:fmt(alpha), I:fmt(Ir), A:fmt(Ar), M:fmt(Mr), DP:fmt(DP)});
+    }
+  } else if (type === 'italian') {
+    const A = C/n;
+    let DP = C;
+    rows.push({r:0, alpha:null, I:null, A:null, M:0, DP:C});
+    for (let r=1; r<=n; r++) {
+      const Ir = DP * Im;
+      const alphar = Ir + A;
+      DP = DP - A;
+      const Mr = r * A;
+      rows.push({r, alpha:fmt(alphar), I:fmt(Ir), A:fmt(A), M:fmt(Mr), DP:fmt(DP)});
+    }
+  } else if (type === 'german') {
+    // Pre-paid interest. Convert: Im^post = Im^pre / (1 - Im^pre)
+    const ImPost = ImPre / (1 - ImPre);
+    const annF = (1-Math.pow(1+ImPost,-n))/ImPost;
+    const alpha = C / annF;
+    // Row 0: I_0 = C * Im^pre (pre-paid at origination)
+    rows.push({r:0, alpha:null, I:fmt(C * ImPre), A:null, M:0, DP:C});
+    let DP = C;
+    for (let r=1; r<=n; r++) {
+      const IrPost = DP * ImPost;
+      const Ar = alpha - IrPost;
+      DP = DP - Ar;
+      const Mr = C - Math.max(0, DP);
+      // Pre-paid interest for this row: I_r = DP_r * Im^pre (paid at start of period r+1)
+      // Row n: I_n = 0 (no more periods)
+      const IrPre = (r === n) ? 0 : fmt(Math.max(0, DP) * ImPre);
+      rows.push({r, alpha:fmt(alpha), I:IrPre, A:fmt(Ar), M:fmt(Mr), DP:fmt(Math.max(0,DP))});
+    }
+  } else if (type === 'geometric') {
+    const geoF = (1 - Math.pow(q,n)*Math.pow(1+Im,-n)) / ((1+Im) - q);
+    const alpha1 = C / geoF;
+    let DP = C;
+    rows.push({r:0, alpha:null, I:null, A:null, M:0, DP:C});
+    for (let r=1; r<=n; r++) {
+      const alphar = alpha1 * Math.pow(q, r-1);
+      const Ir = DP * Im;
+      const Ar = alphar - Ir;
+      DP = DP - Ar;
+      const Mr = C - Math.max(0, DP);
+      rows.push({r, alpha:fmt(alphar), I:fmt(Ir), A:fmt(Ar), M:fmt(Mr), DP:fmt(Math.max(0,DP))});
+    }
+  } else if (type === 'leasing') {
+    const annF = (1-Math.pow(1+Im,-n))/Im;
+    const alpha = (C - RV*Math.pow(1+Im,-n)) / annF;
+    let DP = C;
+    rows.push({r:0, alpha:null, I:null, A:null, M:0, DP:C});
+    for (let r=1; r<=n; r++) {
+      const Ir = DP * Im;
+      const Ar = alpha - Ir;
+      DP = DP - Ar;
+      const Mr = C - DP;
+      rows.push({r, alpha:fmt(alpha), I:fmt(Ir), A:fmt(Ar), M:fmt(Mr), DP:fmt(DP)});
+    }
+  }
+  return rows;
+}
+
+function getStepFormula(step, type, rows, params) {
+  if (step <= 0 || !rows || rows.length < 2) return '';
+  if (step === 1) return `$DP_0 = C = ${params.C.toLocaleString()}$`;
+  const cellsPerRow = 5;
+  const adjStep = step - 2;
+  const rowIdx = Math.floor(adjStep / cellsPerRow) + 1;
+  const colIdx = adjStep % cellsPerRow;
+  if (rowIdx >= rows.length) return '**Table complete!**';
+  const row = rows[rowIdx];
+  const prev = rows[rowIdx-1];
+  const cols = ['alpha','I','A','M','DP'];
+  const col = cols[colIdx];
+  const Im = params.Im;
+  const ImPre = params.ImPre;
+
+  if (type === 'french') {
+    if (col === 'alpha') return `$\\alpha = \\frac{C}{\\frac{1-(1+I_m)^{-n}}{I_m}} = ${row.alpha}$ **(constant)**`;
+    if (col === 'I') return `$I_{${rowIdx}} = DP_{${rowIdx-1}} \\cdot I_m = ${prev.DP} \\times ${fmtN(Im,6)} = ${row.I}$`;
+    if (col === 'A') return `$A_{${rowIdx}} = \\alpha - I_{${rowIdx}} = ${row.alpha} - ${row.I} = ${row.A}$`;
+    if (col === 'M') return `$M_{${rowIdx}} = M_{${rowIdx-1}} + A_{${rowIdx}} = ${prev.M} + ${row.A} = ${row.M}$`;
+    if (col === 'DP') return `$DP_{${rowIdx}} = DP_{${rowIdx-1}} - A_{${rowIdx}} = ${prev.DP} - ${row.A} = ${row.DP}$`;
+  }
+  if (type === 'italian') {
+    if (col === 'I') return `$I_{${rowIdx}} = DP_{${rowIdx-1}} \\cdot I_m = ${prev.DP} \\times ${fmtN(Im,6)} = ${row.I}$`;
+    if (col === 'A') return `$A = \\frac{C}{n} = ${row.A}$ **(constant)**`;
+    if (col === 'alpha') return `$\\alpha_{${rowIdx}} = I_{${rowIdx}} + A = ${row.I} + ${row.A} = ${row.alpha}$`;
+    if (col === 'M') return `$M_{${rowIdx}} = ${rowIdx} \\cdot A = ${rowIdx} \\times ${row.A} = ${row.M}$`;
+    if (col === 'DP') return `$DP_{${rowIdx}} = (n-${rowIdx}) \\cdot A = ${params.n - rowIdx} \\times ${row.A} = ${row.DP}$`;
+  }
+  if (type === 'german') {
+    const ImPost = ImPre / (1 - ImPre);
+    if (col === 'alpha') return `$\\alpha = \\frac{C}{\\frac{1-(1+I_m^{post})^{-n}}{I_m^{post}}} = ${row.alpha}$ **(constant, using** $I_m^{post}=${fmtN(ImPost*100,4)}\\%$**)**`;
+    if (col === 'I') {
+      if (rowIdx === params.n) return `$I_{${rowIdx}} = 0$ **(last period — no more pre-paid interest)**`;
+      return `$I_{${rowIdx}} = DP_{${rowIdx}} \\cdot I_m^{pre} = ${row.DP} \\times ${fmtN(ImPre,6)} = ${row.I}$ **(pre-paid)**`;
+    }
+    if (col === 'A') return `$A_{${rowIdx}} = \\alpha - I_{${rowIdx-1}}^{post} = \\alpha - DP_{${rowIdx-1}} \\cdot I_m^{post} = ${row.A}$`;
+    if (col === 'M') return `$M_{${rowIdx}} = C - DP_{${rowIdx}} = ${params.C} - ${row.DP} = ${row.M}$`;
+    if (col === 'DP') return `$DP_{${rowIdx}} = DP_{${rowIdx-1}} - A_{${rowIdx}} = ${prev.DP} - ${row.A} = ${row.DP}$`;
+  }
+  if (type === 'geometric') {
+    if (col === 'alpha') return `$\\alpha_{${rowIdx}} = \\alpha_1 \\cdot q^{${rowIdx}-1} = ${rows[1]?.alpha} \\times ${fmtN(params.q,4)}^{${rowIdx-1}} = ${row.alpha}$`;
+    if (col === 'I') return `$I_{${rowIdx}} = DP_{${rowIdx-1}} \\cdot I_m = ${prev.DP} \\times ${fmtN(Im,6)} = ${row.I}$`;
+    if (col === 'A') return `$A_{${rowIdx}} = \\alpha_{${rowIdx}} - I_{${rowIdx}} = ${row.alpha} - ${row.I} = ${row.A}$`;
+    if (col === 'M') return `$M_{${rowIdx}} = C - DP_{${rowIdx}} = ${params.C} - ${row.DP} = ${row.M}$`;
+    if (col === 'DP') return `$DP_{${rowIdx}} = DP_{${rowIdx-1}} - A_{${rowIdx}} = ${prev.DP} - ${row.A} = ${row.DP}$`;
+  }
+  if (type === 'leasing') {
+    if (col === 'alpha') return `$\\alpha = \\frac{PV - RV(1+I_m)^{-n}}{\\frac{1-(1+I_m)^{-n}}{I_m}} = ${row.alpha}$ **(constant)**`;
+    if (col === 'I') return `$I_{${rowIdx}} = DP_{${rowIdx-1}} \\cdot I_m = ${prev.DP} \\times ${fmtN(Im,6)} = ${row.I}$`;
+    if (col === 'A') return `$A_{${rowIdx}} = \\alpha - I_{${rowIdx}} = ${row.alpha} - ${row.I} = ${row.A}$`;
+    if (col === 'M') return `$M_{${rowIdx}} = C - DP_{${rowIdx}} = ${params.C} - ${row.DP} = ${row.M}$`;
+    if (col === 'DP') return `$DP_{${rowIdx}} = DP_{${rowIdx-1}} - A_{${rowIdx}} = ${prev.DP} - ${row.A} = ${row.DP}$`;
+  }
+  return `Row ${rowIdx}, computing ${col}...`;
+}
+
+function TableBuilder() {
+  const [loanType, setLoanType] = useState('french');
+  const [C, setC] = useState(100000);
+  const [ratePct, setRatePct] = useState(6);
+  const [mFreq, setMFreq] = useState(12);
+  const [years, setYears] = useState(2);
+  const [qVal, setQVal] = useState(1.03);
+  const [RV, setRV] = useState(10000);
+  const [step, setStep] = useState(0);
+  const [showAll, setShowAll] = useState(true);
+  const formulaRef = useRef(null);
+
+  const n = years * mFreq;
+  const Im = nominalToEffective(ratePct, mFreq);
+  const ImPre = nominalToEffective(ratePct, mFreq);
+  const maxDisplay = Math.min(n, 24);
+
+  const allRows = useMemo(() => computeAmortTable(loanType, C, Im, n, qVal, RV, ImPre), [loanType, C, Im, n, qVal, RV, ImPre]);
+  const rows = allRows.length > maxDisplay + 2
+    ? [...allRows.slice(0, maxDisplay+1), {r:'...', alpha:'...', I:'...', A:'...', M:'...', DP:'...'}, allRows[allRows.length-1]]
+    : allRows;
+
+  const totalSteps = 1 + (allRows.length - 1) * 5;
+  const formula = getStepFormula(step, loanType, allRows, {C, Im, ImPre, n, q:qVal});
+
+  // Compute key parameters for display
+  const keyParams = useMemo(() => {
+    const p = {};
+    if (allRows.length > 1) {
+      p.alpha = allRows[1].alpha;
+      if (loanType === 'italian') p.A = allRows[1].A;
+      if (loanType === 'german') {
+        p.ImPost = fmtN((ImPre/(1-ImPre))*100, 4);
+        p.I0 = allRows[0].I;
+      }
+      if (loanType === 'geometric' && allRows.length > 2) {
+        p.alpha1 = allRows[1].alpha;
+        p.alphaN = allRows[allRows.length-1].alpha;
+      }
+      if (loanType === 'leasing') {
+        p.RV_actual = allRows[allRows.length-1].DP;
+      }
+      // Total interest
+      let totalPaid = 0;
+      for (let i=1; i<allRows.length; i++) {
+        if (typeof allRows[i].alpha === 'number') totalPaid += allRows[i].alpha;
+      }
+      if (loanType === 'leasing') {
+        p.totalInt = fmt(totalPaid + RV - C);
+      } else {
+        p.totalInt = fmt(totalPaid - C);
+      }
+      p.totalPaid = fmt(totalPaid);
+    }
+    return p;
+  }, [allRows, loanType, RV, C]);
+
+  // MathJax for step formula
+  useEffect(() => {
+    if (formulaRef.current) typesetEl(formulaRef.current);
+  }, [step, showAll, loanType, C, ratePct, mFreq, years, qVal, RV]);
+
+  function isCellVisible(rowIdx, colName) {
+    if (showAll) return true;
+    if (step <= 0) return false;
+    if (rowIdx === 0) return step >= 1;
+    const cellsPerRow = 5;
+    const cols = ['alpha','I','A','M','DP'];
+    const colIdx = cols.indexOf(colName);
+    const cellStep = 2 + (rowIdx - 1) * cellsPerRow + colIdx;
+    return step >= cellStep;
+  }
+
+  function isCellCurrent(rowIdx, colName) {
+    if (showAll || step <= 0) return false;
+    if (rowIdx === 0 && step === 1) return colName === 'DP';
+    const cellsPerRow = 5;
+    const cols = ['alpha','I','A','M','DP'];
+    const colIdx = cols.indexOf(colName);
+    const cellStep = 2 + (rowIdx - 1) * cellsPerRow + colIdx;
+    return step === cellStep;
+  }
+
+  function activeRow() {
+    if (showAll || step <= 0) return -1;
+    if (step === 1) return 0;
+    const adjStep = step - 2;
+    return Math.floor(adjStep / 5) + 1;
+  }
+
+  const direction = (loanType === 'leasing') ? 'Bottom-Up' : 'Top-Down';
+
+  const types = [
+    {id:'french',label:'French'},{id:'italian',label:'Italian'},{id:'german',label:'German'},
+    {id:'geometric',label:'Geometric'},{id:'leasing',label:'Leasing'}
+  ];
+
+  function cellClass(ri, col) {
+    if (typeof rows[ri]?.r === 'string' && rows[ri].r === '...') return '';
+    const realRowIdx = rows[ri]?.r;
+    if (typeof realRowIdx !== 'number') return '';
+    if (!showAll && !isCellVisible(realRowIdx, col)) return 'cell-hidden';
+    if (isCellCurrent(realRowIdx, col)) return 'cell-current';
+    if (!showAll && isCellVisible(realRowIdx, col)) return 'cell-done';
+    return '';
+  }
+
+  function cellVal(ri, col) {
+    const row = rows[ri];
+    if (!row) return '';
+    if (row.r === '...') return '...';
+    const realRowIdx = row.r;
+    if (realRowIdx === 0) {
+      if (col === 'DP') return fmtDisplay(C);
+      if (col === 'M') return '0.00';
+      if (col === 'I' && loanType === 'german') return fmtDisplay(row.I);
+      return '—';
+    }
+    const val = row[col];
+    if (val === null || val === undefined) return '—';
+    if (!showAll && !isCellVisible(realRowIdx, col)) return '?';
+    return fmtDisplay(val);
+  }
+
+  // Keyboard shortcuts for step mode
+  useEffect(() => {
+    function handleKey(e) {
+      if (showAll) return;
+      if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); setStep(s => Math.min(totalSteps, s+1)); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); setStep(s => Math.max(1, s-1)); }
+    }
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [showAll, totalSteps]);
+
+  const currentRowIdx = activeRow();
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-xl font-bold text-gray-800">Interactive Amortization Table Builder</h2>
+
+      <div className="flex gap-2 flex-wrap">
+        {types.map(t => (
+          <button key={t.id} className={`type-pill ${loanType===t.id?'active':''}`}
+            onClick={()=>{setLoanType(t.id);setStep(0);setShowAll(true);}}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 p-4 flex gap-4 flex-wrap items-end">
+        <label className="text-sm font-medium text-gray-600">
+          C (Principal)<br/>
+          <input type="number" className="param-input" value={C} onChange={e=>setC(Number(e.target.value)||0)} />
+        </label>
+        <label className="text-sm font-medium text-gray-600">
+          i_m (Annual %)<br/>
+          <input type="number" step="0.5" className="param-input" value={ratePct} onChange={e=>setRatePct(Number(e.target.value)||0)} />
+        </label>
+        <label className="text-sm font-medium text-gray-600">
+          m (freq)<br/>
+          <select className="param-input" value={mFreq} onChange={e=>setMFreq(Number(e.target.value))}>
+            <option value={1}>Annual</option>
+            <option value={2}>Semi-annual</option>
+            <option value={4}>Quarterly</option>
+            <option value={12}>Monthly</option>
+          </select>
+        </label>
+        <label className="text-sm font-medium text-gray-600">
+          Years<br/>
+          <input type="number" className="param-input" value={years} onChange={e=>setYears(Math.max(1,Number(e.target.value)||1))} />
+        </label>
+        {loanType === 'geometric' && (
+          <label className="text-sm font-medium text-gray-600">
+            q (growth)<br/>
+            <input type="number" step="0.01" className="param-input" value={qVal} onChange={e=>setQVal(Number(e.target.value)||1)} />
+          </label>
+        )}
+        {loanType === 'leasing' && (
+          <label className="text-sm font-medium text-gray-600">
+            RV (Residual)<br/>
+            <input type="number" className="param-input" value={RV} onChange={e=>setRV(Number(e.target.value)||0)} />
+          </label>
+        )}
+      </div>
+
+      {/* Key computed parameters */}
+      <div className="flex gap-3 flex-wrap">
+        <div className="key-param"><span className="label">n (periods)</span><span className="value">{n}</span></div>
+        <div className="key-param"><span className="label">I_m</span><span className="value">{fmtN(Im*100,4)}%</span></div>
+        {keyParams.alpha && <div className="key-param"><span className="label">{loanType==='italian'?'α₁':'α'}</span><span className="value">{fmtDisplay(keyParams.alpha)}</span></div>}
+        {keyParams.A && <div className="key-param"><span className="label">A (const)</span><span className="value">{fmtDisplay(keyParams.A)}</span></div>}
+        {keyParams.ImPost && <div className="key-param"><span className="label">I_m^post</span><span className="value">{keyParams.ImPost}%</span></div>}
+        {keyParams.totalInt !== undefined && <div className="key-param"><span className="label">Total Int.</span><span className="value">{fmtDisplay(keyParams.totalInt)}</span></div>}
+      </div>
+
+      <div className="flex gap-3 items-center flex-wrap">
+        <span className="text-sm font-semibold px-3 py-1 rounded-lg bg-amber-50 text-amber-700">
+          Method: {direction} {direction === 'Bottom-Up' ? '↑' : '↓'}
+        </span>
+        <div className="ml-auto flex gap-2">
+          <button className={`diff-pill ${showAll?'active':''}`} onClick={()=>{setShowAll(true);setStep(0);}}>
+            Show All
+          </button>
+          <button className={`diff-pill ${!showAll?'active':''}`} onClick={()=>{setShowAll(false);setStep(1);}}>
+            Step-by-Step
+          </button>
+        </div>
+      </div>
+
+      {!showAll && (
+        <div className="flex gap-2 items-center">
+          <button className="px-4 py-2 bg-gray-100 rounded-lg font-semibold text-sm hover:bg-gray-200 disabled:opacity-40"
+            onClick={()=>setStep(Math.max(1,step-1))} disabled={step<=1}>{'←'} Prev</button>
+          <div className="flex-1 mx-2">
+            <div className="bg-gray-200 rounded-full h-2.5 overflow-hidden">
+              <div className="bg-khan h-full rounded-full transition-all duration-300" style={{width:`${Math.round(step/totalSteps*100)}%`}}></div>
+            </div>
+            <div className="text-xs text-center text-gray-500 mt-1">Step {step} / {totalSteps}</div>
+          </div>
+          <button className="px-4 py-2 bg-khan text-white rounded-lg font-semibold text-sm hover:bg-khanDark disabled:opacity-40"
+            onClick={()=>setStep(Math.min(totalSteps,step+1))} disabled={step>=totalSteps}>Next {'→'}</button>
+          <button className="px-3 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 ml-1"
+            onClick={()=>setStep(1)} title="Reset">{'↺'}</button>
+        </div>
+      )}
+
+      <div className="overflow-x-auto bg-white rounded-xl border border-gray-200">
+        <table className="amort-table">
+          <thead>
+            <tr>
+              <th>r</th>
+              <th>{'α'}_r</th>
+              <th>I_r</th>
+              <th>A_r</th>
+              <th>M_r</th>
+              <th>DP_r</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, ri) => (
+              <tr key={ri} className={currentRowIdx === row.r ? 'row-active' : ''}>
+                <td className="font-semibold text-center text-gray-600">{row.r}</td>
+                <td className={cellClass(ri,'alpha')}>{cellVal(ri,'alpha')}</td>
+                <td className={cellClass(ri,'I')}>{cellVal(ri,'I')}</td>
+                <td className={cellClass(ri,'A')}>{cellVal(ri,'A')}</td>
+                <td className={cellClass(ri,'M')}>{cellVal(ri,'M')}</td>
+                <td className={cellClass(ri,'DP')}>{cellVal(ri,'DP')}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {!showAll && step > 0 && (
+        <div ref={formulaRef} className="step-formula fade-in">
+          <div className="text-sm font-semibold text-blue-800 mb-1">Current Step Formula:</div>
+          <div className="text-sm text-gray-800">{formula}</div>
+        </div>
+      )}
+
+      {showAll && allRows.length > 1 && (
+        <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 text-sm space-y-1">
+          <div className="font-semibold text-gray-700 mb-2">Summary</div>
+          {loanType === 'french' && <div>Constant payment: <strong>{'α'} = {fmtDisplay(allRows[1]?.alpha)}</strong></div>}
+          {loanType === 'italian' && <div>Constant repayment: <strong>A = {fmtDisplay(allRows[1]?.A)}</strong>. Payments decrease from {'α₁'} = {fmtDisplay(allRows[1]?.alpha)} to {'α'}_n = {fmtDisplay(allRows[allRows.length-1]?.alpha)}</div>}
+          {loanType === 'geometric' && <div>Payments grow: {'α₁'} = {fmtDisplay(allRows[1]?.alpha)} {'→'} {'α'}_n = {fmtDisplay(allRows[allRows.length-1]?.alpha)}</div>}
+          {loanType === 'leasing' && <div>Payment: <strong>{'α'} = {fmtDisplay(allRows[1]?.alpha)}</strong>. Final DP_n = {fmtDisplay(allRows[allRows.length-1]?.DP)} {'≈'} RV = {fmtDisplay(RV)}</div>}
+          <div>Total paid: <strong>{fmtDisplay(keyParams.totalPaid)}</strong> | Total interest: <strong>{fmtDisplay(keyParams.totalInt)}</strong></div>
+        </div>
+      )}
+
+      {!showAll && (
+        <div className="text-xs text-gray-400 text-center">Tip: use Arrow keys or Space to step through</div>
+      )}
+    </div>
+  );
+}
+
+// ============ MAIN APP ============
+function MathBlock({ content, className }) {
+  // Component that renders math content and typesets it
+  const ref = useRef(null);
+  useEffect(() => { if (ref.current) typesetEl(ref.current); }, [content]);
+  return <div ref={ref} className={className}>{content}</div>;
+}
+
+function App() {
+  const [topic, setTopic] = useState('simple');
+  const [difficulty, setDifficulty] = useState('easy');
+  const [seed, setSeed] = useState(Date.now());
+  const [selected, setSelected] = useState(null);
+  const [score, setScore] = useState({correct:0, total:0});
+  const [showWorkings, setShowWorkings] = useState(false);
+  const [showFormulas, setShowFormulas] = useState(false);
+  const [showExample, setShowExample] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [examMode, setExamMode] = useState(false);
+  const [examTimeChoice, setExamTimeChoice] = useState(45);
+  const [examTimeLeft, setExamTimeLeft] = useState(null);
+  const [examScore, setExamScore] = useState({correct:0, total:0, byTopic:{}});
+  const [examStarted, setExamStarted] = useState(false);
+  const [showExamModal, setShowExamModal] = useState(false);
+  const [showExamSetup, setShowExamSetup] = useState(false);
+  const [streak, setStreak] = useState(0);
+  const timerRef = useRef(null);
+  const examStartTimeRef = useRef(null);
+  const scenarioRef = useRef(null);
+  const workingsRef = useRef(null);
+  const exampleRef = useRef(null);
+  const formulaRef = useRef(null);
+
+  const isTableMode = topic === 'tables';
+  const problem = useMemo(() => {
+    return !isTableMode && GENERATORS[topic] ? GENERATORS[topic](seed, difficulty) : null;
+  }, [topic, seed, difficulty, isTableMode]);
+
+  // Typeset scenario + question when problem changes
+  useEffect(() => {
+    if (scenarioRef.current) typesetEl(scenarioRef.current);
+  }, [problem]);
+
+  // Typeset workings when shown
+  useEffect(() => {
+    if (showWorkings && workingsRef.current) typesetEl(workingsRef.current);
+  }, [showWorkings, problem]);
+
+  // Typeset example when shown
+  useEffect(() => {
+    if (showExample && exampleRef.current) typesetEl(exampleRef.current);
+  }, [showExample, topic, difficulty]);
+
+  // Typeset formula sheet when shown
+  useEffect(() => {
+    if (showFormulas && formulaRef.current) typesetEl(formulaRef.current);
+  }, [showFormulas, topic]);
+
+  // Timer
+  useEffect(() => {
+    if (examStarted && examTimeLeft > 0) {
+      timerRef.current = setInterval(() => {
+        setExamTimeLeft(prev => {
+          if (prev <= 1) { clearInterval(timerRef.current); endExam(); return 0; }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timerRef.current);
+    }
+  }, [examStarted]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    function handleKey(e) {
+      if (isTableMode) return;
+      // 1-4 or A-D to select option
+      if (selected === null && problem) {
+        const num = parseInt(e.key);
+        if (num >= 1 && num <= 4) { handleSelect(num-1); return; }
+        const letter = e.key.toUpperCase();
+        const idx = 'ABCD'.indexOf(letter);
+        if (idx >= 0 && idx < 4) { handleSelect(idx); return; }
+      }
+      // Enter or Space for next problem
+      if (selected !== null && (e.key === 'Enter' || e.key === ' ')) {
+        e.preventDefault();
+        nextProblem();
+      }
+    }
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [selected, problem, isTableMode]);
+
+  function startExam() {
+    setExamMode(true); setExamStarted(true);
+    setExamTimeLeft(examTimeChoice*60);
+    setExamScore({correct:0,total:0,byTopic:{}});
+    setShowExamSetup(false); setSelected(null);
+    setShowWorkings(false); setShowExample(false);
+    setSeed(Date.now()); examStartTimeRef.current = Date.now();
+  }
+  function endExam() { clearInterval(timerRef.current); setExamStarted(false); setShowExamModal(true); }
+  function closeExamModal() { setShowExamModal(false); setExamMode(false); setExamTimeLeft(null); }
+
+  function handleSelect(idx) {
+    if (selected !== null || !problem || idx >= problem.options.length) return;
+    setSelected(idx);
+    const isCorrect = problem.options[idx].isCorrect;
+    if (isCorrect) { setStreak(s=>s+1); } else { setStreak(0); }
+    if (examMode && examStarted) {
+      const ns = {...examScore}; ns.total++;
+      if (isCorrect) ns.correct++;
+      if (!ns.byTopic[topic]) ns.byTopic[topic] = {correct:0,total:0};
+      ns.byTopic[topic].total++; if (isCorrect) ns.byTopic[topic].correct++;
+      setExamScore(ns);
+    } else {
+      setScore(p=>({correct:p.correct+(isCorrect?1:0), total:p.total+1}));
+    }
+  }
+
+  function nextProblem() {
+    setSeed(Date.now()+Math.random()*10000);
+    setSelected(null); setShowWorkings(false);
+  }
+
+  function formatTime(s) {
+    if (s===null) return '';
+    return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+  }
+
+  const topicName = TOPICS.find(t=>t.id===topic)?.name || '';
+  const pct = score.total > 0 ? Math.round(score.correct/score.total*100) : 0;
+
+  return (
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      {sidebarOpen && <div className="fixed inset-0 bg-black bg-opacity-40 z-40 md:hidden" onClick={()=>setSidebarOpen(false)}/>}
+
+      <div className={`fixed md:static z-50 h-full w-64 bg-white border-r border-gray-200 flex flex-col transition-transform md:translate-x-0 ${sidebarOpen?'translate-x-0':'-translate-x-full'}`}>
+        <div className="p-4 border-b border-gray-200">
+          <h2 className="font-bold text-lg text-gray-800">Topics</h2>
+        </div>
+        <div className="flex-1 overflow-y-auto p-3 space-y-1">
+          {TOPICS.map(t=>(
+            <div key={t.id} className={`sidebar-link ${topic===t.id?'active':'text-gray-700'}`}
+              onClick={()=>{setTopic(t.id);setSeed(Date.now());setSelected(null);setShowWorkings(false);setShowExample(false);setSidebarOpen(false);}}>
+              <span className="mr-2 font-bold">{t.icon}.</span>{t.name}
+            </div>
+          ))}
+        </div>
+        <div className="p-4 border-t border-gray-200">
+          <div className="text-sm text-gray-500">
+            Score: {score.correct}/{score.total}
+            {score.total>0 && ` (${pct}%)`}
+          </div>
+          {streak >= 3 && <div className="mt-1"><span className="streak-badge">{'🔥'} {streak} streak</span></div>}
+        </div>
+      </div>
+
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 flex-wrap">
+          <button className="md:hidden p-2 rounded hover:bg-gray-100" onClick={()=>setSidebarOpen(!sidebarOpen)}>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+          <h1 className="font-bold text-lg text-gray-800 mr-auto">Financial Math Practice</h1>
+          {streak >= 3 && !isTableMode && <span className="streak-badge hidden md:inline">{'🔥'} {streak}</span>}
+          {!isTableMode && (
+            <button className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition ${showFormulas?'bg-yellow-100 text-yellow-800 border border-yellow-400':'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              onClick={()=>setShowFormulas(!showFormulas)}>
+              {showFormulas?'Hide Formulas':'Formulas'}
+            </button>
+          )}
+          {!isTableMode && !examMode && (
+            <button className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-khan text-white hover:bg-khanDark transition"
+              onClick={()=>setShowExamSetup(true)}>Exam Mode</button>
+          )}
+          {examMode && (
+            <button className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-error text-white" onClick={endExam}>End Exam</button>
+          )}
+          {examMode && examStarted && (
+            <div className={`font-mono font-bold text-lg ${examTimeLeft<=300?'timer-red':'text-gray-800'}`}>
+              {formatTime(examTimeLeft)}
+            </div>
+          )}
+          {examMode && <div className="text-sm font-semibold text-khan">Exam: {examScore.correct}/{examScore.total}</div>}
+          {!examMode && !isTableMode && <div className="text-sm text-gray-500">{score.correct}/{score.total}</div>}
+        </header>
+
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-4">
+
+            {isTableMode ? (
+              <TableBuilder />
+            ) : (
+              <>
+                <div className="flex gap-2 items-center flex-wrap">
+                  <span className="text-sm font-medium text-gray-600 mr-1">Difficulty:</span>
+                  {['easy','medium','hard'].map(d=>(
+                    <button key={d} className={`diff-pill ${difficulty===d?'active':''}`}
+                      onClick={()=>{setDifficulty(d);setSeed(Date.now());setSelected(null);setShowWorkings(false);}}>
+                      {d.charAt(0).toUpperCase()+d.slice(1)}
+                    </button>
+                  ))}
+                </div>
+
+                <h2 className="text-xl font-bold text-gray-800">{topicName}</h2>
+
+                {!examMode && (
+                  <div className="example-panel">
+                    <button className="flex items-center gap-2 font-semibold text-khan hover:underline"
+                      onClick={()=>setShowExample(!showExample)}>
+                      <svg className={`w-4 h-4 transition-transform ${showExample?'rotate-90':''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+                      {showExample?'Hide Worked Example':'View Worked Example'}
+                    </button>
+                    {showExample && (()=>{
+                      const ex = getWorkedExample(topic, difficulty);
+                      return <div ref={exampleRef} className="mt-3 space-y-2">
+                        <h4 className="font-bold text-gray-700">{ex.title}</h4>
+                        <div className="text-sm text-gray-700 whitespace-pre-line">{ex.content}</div>
+                      </div>;
+                    })()}
+                  </div>
+                )}
+
+                {showFormulas && (
+                  <div ref={formulaRef} className="formula-panel">
+                    <h3 className="font-bold text-yellow-800 mb-2">Formula Reference: {topicName}</h3>
+                    <div className="text-sm text-gray-800 whitespace-pre-line">{FORMULA_SHEETS[topic]}</div>
+                  </div>
+                )}
+
+                {problem && (
+                  <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 md:p-6 fade-in" key={seed}>
+                    <div ref={scenarioRef}>
+                      <div className="mb-4 text-gray-700">{problem.scenario}</div>
+                      <div className="mb-5 font-semibold text-gray-900">{problem.question}</div>
+                    </div>
+                    <div className="space-y-3">
+                      {problem.options.map((opt, idx) => {
+                        let cls = 'option-btn';
+                        if (selected !== null) {
+                          cls += ' answered';
+                          if (opt.isCorrect) cls += ' correct-reveal';
+                          else if (idx === selected && !opt.isCorrect) cls += ' incorrect';
+                        }
+                        return (
+                          <button key={idx} className={cls} onClick={()=>handleSelect(idx)}>
+                            <span className="font-semibold mr-3 text-gray-400 w-6">{String.fromCharCode(65+idx)}</span>
+                            <span className="font-mono">{Number(opt.value).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {selected !== null && (
+                      <div className={`mt-4 p-3 rounded-lg text-sm font-semibold ${problem.options[selected].isCorrect?'bg-green-50 text-success':'bg-red-50 text-error'}`}>
+                        {problem.options[selected].isCorrect
+                          ? (streak >= 3 ? `Correct! ${'🔥'} ${streak} in a row!` : 'Correct!')
+                          : `Incorrect. Answer: ${problem.options.find(o=>o.isCorrect).value.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`}
+                      </div>
+                    )}
+                    {selected !== null && !examMode && (
+                      <div className="mt-4">
+                        <button className="text-khan font-semibold text-sm hover:underline"
+                          onClick={()=>setShowWorkings(!showWorkings)}>
+                          {showWorkings?'Hide Solution':'Show Solution'}
+                        </button>
+                        {showWorkings && (
+                          <div ref={workingsRef} className="workings-panel mt-2 fade-in">
+                            <div className="text-sm text-gray-700 whitespace-pre-line">{problem.workings}</div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex justify-center gap-3">
+                  <button className="px-6 py-3 bg-khan text-white font-semibold rounded-xl hover:bg-khanDark transition shadow"
+                    onClick={nextProblem}>New Problem</button>
+                </div>
+                <div className="text-xs text-center text-gray-400">Keyboard: 1-4 or A-D to answer, Enter for next</div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {showExamSetup && (
+        <div className="modal-overlay" onClick={()=>setShowExamSetup(false)}>
+          <div className="modal-content" onClick={e=>e.stopPropagation()}>
+            <h3 className="text-xl font-bold mb-4">Start Exam Mode</h3>
+            <p className="text-gray-600 mb-4">Worked examples hidden. Formula sheet available. Choose time:</p>
+            <div className="flex gap-2 mb-6 flex-wrap">
+              {[30,45,60,90].map(t=>(
+                <button key={t} className={`diff-pill ${examTimeChoice===t?'active':''}`}
+                  onClick={()=>setExamTimeChoice(t)}>{t} min</button>
+              ))}
+            </div>
+            <div className="flex gap-3">
+              <button className="flex-1 py-2.5 bg-khan text-white font-semibold rounded-xl hover:bg-khanDark"
+                onClick={startExam}>Start</button>
+              <button className="flex-1 py-2.5 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200"
+                onClick={()=>setShowExamSetup(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showExamModal && (
+        <div className="modal-overlay" onClick={closeExamModal}>
+          <div className="modal-content" onClick={e=>e.stopPropagation()}>
+            <h3 className="text-xl font-bold mb-2">Exam Results</h3>
+            <div className="mb-4 text-gray-600">{examTimeLeft===0?'Time up!':'Exam ended.'}</div>
+            <div className="space-y-3">
+              <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+                <span>Score</span><span className="font-bold text-lg">{examScore.correct}/{examScore.total}</span>
+              </div>
+              <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+                <span>Percentage</span><span className="font-bold text-lg">{examScore.total>0?Math.round(examScore.correct/examScore.total*100):0}%</span>
+              </div>
+              <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+                <span>Time</span><span className="font-bold">{examStartTimeRef.current?formatTime(Math.round((Date.now()-examStartTimeRef.current)/1000)):'--'}</span>
+              </div>
+              {Object.keys(examScore.byTopic).length>0 && (
+                <div className="mt-3">
+                  <h4 className="font-semibold text-gray-700 mb-2">By Topic</h4>
+                  {Object.entries(examScore.byTopic).map(([tid,s])=>{
+                    const nm = TOPICS.find(t=>t.id===tid)?.name||tid;
+                    return <div key={tid} className="flex justify-between text-sm py-1 border-b border-gray-100">
+                      <span>{nm}</span><span className="font-semibold">{s.correct}/{s.total}</span>
+                    </div>;
+                  })}
+                </div>
+              )}
+            </div>
+            <button className="mt-6 w-full py-2.5 bg-khan text-white font-semibold rounded-xl hover:bg-khanDark"
+              onClick={closeExamModal}>Close</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+
+</script>
+</body>
+</html>
