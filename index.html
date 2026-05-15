@@ -145,11 +145,19 @@ function generateOptions(correct, traps, rng) {
 }
 
 // ============ MATHJAX HELPER ============
-// Typeset a specific element — avoids re-processing the entire page
+const mathJaxReady = new Promise(resolve => {
+  const check = () => {
+    if (window.MathJax && MathJax.typesetPromise) resolve();
+    else setTimeout(check, 50);
+  };
+  check();
+});
 function typesetEl(el) {
-  if (!el || !window.MathJax || !MathJax.typesetPromise) return;
-  MathJax.typesetClear([el]);
-  MathJax.typesetPromise([el]).catch(()=>{});
+  if (!el) return;
+  mathJaxReady.then(() => {
+    MathJax.typesetClear([el]);
+    MathJax.typesetPromise([el]).catch(()=>{});
+  });
 }
 
 // ============ TOPIC DEFINITIONS ============
@@ -168,62 +176,52 @@ const TOPICS = [
 
 // ============ FORMULA SHEETS (matching FORMULAE EN.pdf) ============
 const FORMULA_SHEETS = {
-  simple: `**Simple Interest (Official Formulae)**
-$$V_t = V_0 \\cdot (1 + i \\cdot t)$$
+  simple: `$$V_t = V_0 \\cdot (1 + i \\cdot t)$$
 $$i = \\frac{V_t / V_0 - 1}{t}, \\quad t = \\frac{V_t / V_0 - 1}{i}$$
 $$\\text{Interest: } I = V_0 \\cdot i \\cdot t$$`,
 
-  discount: `**Commercial Discount (Official Formulae)**
-$$V_0 = V_t \\cdot (1 - d \\cdot t)$$
+  discount: `$$V_0 = V_t \\cdot (1 - d \\cdot t)$$
 $$D = V_t \\cdot d \\cdot t$$
 $$\\text{Equivalent simple rate: } i = \\frac{d}{1 - d \\cdot t}$$
 $$\\text{Cash value: } E_0 = V_t(1-dt) - g \\cdot V_t - G$$`,
 
-  compound: `**Compound Interest (Official Formulae)**
-$$I_m = \\frac{i_m}{m} \\quad \\text{(nominal } i_m \\text{ to effective per-period } I_m\\text{)}$$
+  compound: `$$I_m = \\frac{i_m}{m} \\quad \\text{(nominal } i_m \\text{ to effective per-period } I_m\\text{)}$$
 $$V_n = V_0 \\cdot (1 + I_m)^n \\qquad V_0 = V_n \\cdot (1 + I_m)^{-n}$$
 $$(1+I_m)^m = (1+I_n)^n \\quad \\text{(rate equivalence)}$$
 $$I_1 = (1+I_m)^m - 1 \\quad \\text{(EAR)}$$
 $$n = \\frac{\\ln(V_n/V_0)}{\\ln(1+I_m)}$$`,
 
-  annuity: `**Annuities (Official Formulae)**
-$$V_0 = P \\cdot \\frac{1-(1+I_m)^{-n}}{I_m} \\qquad V_0 = \\frac{P}{I_m} \\text{ (perpetuity)}$$
+  annuity: `$$V_0 = P \\cdot \\frac{1-(1+I_m)^{-n}}{I_m} \\qquad V_0 = \\frac{P}{I_m} \\text{ (perpetuity)}$$
 $$\\text{Adjustment factors: } (1+I_m)^1 \\text{ pre-paid}, \\; (1+I_m)^{-d} \\text{ deferred}, \\; (1+I_m)^n \\text{ FV}$$
 $$\\text{Geometric (}q \\neq 1+I_m\\text{): } V_0^g = C_1 \\cdot \\frac{1-q^n(1+I_m)^{-n}}{1+I_m - q}$$
 $$\\text{Geometric (}q = 1+I_m\\text{): } V_0^g = C_1 \\cdot n \\cdot (1+I_m)^{-1}$$
 $$\\text{Arithmetic: } V_0^a = \\left(C_1+nh+\\frac{h}{I_m}\\right)\\frac{1-(1+I_m)^{-n}}{I_m} - \\frac{nh}{I_m}$$`,
 
-  french: `**French Loan — Constant Payment (Official Formulae)**
-$$\\alpha = \\frac{C}{\\dfrac{1-(1+I_m)^{-n}}{I_m}}$$
+  french: `$$\\alpha = \\frac{C}{\\dfrac{1-(1+I_m)^{-n}}{I_m}}$$
 $$DP_r = \\alpha \\cdot \\frac{1-(1+I_m)^{-(n-r)}}{I_m}$$
 $$I_r = DP_{r-1} \\cdot I_m, \\quad A_r = \\alpha - I_r$$
 $$M_r = C - DP_r = \\sum_{s=1}^{r} A_s$$`,
 
-  italian: `**Italian Loan — Constant Repayment (Official Formulae)**
-$$A = \\frac{C}{n} \\quad \\text{(constant)}, \\quad M_r = r \\cdot A$$
+  italian: `$$A = \\frac{C}{n} \\quad \\text{(constant)}, \\quad M_r = r \\cdot A$$
 $$DP_r = C - r \\cdot A = (n-r) \\cdot A$$
 $$I_r = I_m \\cdot DP_{r-1}, \\quad \\alpha_r = I_r + A$$
 $$\\alpha_r \\text{ follows arithmetic progression with } h = -I_m \\cdot A$$`,
 
-  german: `**German Loan — Pre-paid Interest (Official Formulae)**
-$$1 + I_m^{post} = (1 - I_m^{pre})^{-1} \\quad \\Rightarrow \\quad I_m^{post} = \\frac{I_m^{pre}}{1-I_m^{pre}}$$
+  german: `$$1 + I_m^{post} = (1 - I_m^{pre})^{-1} \\quad \\Rightarrow \\quad I_m^{post} = \\frac{I_m^{pre}}{1-I_m^{pre}}$$
 $$C \\cdot (1-I_m^{pre}) = \\alpha \\cdot \\frac{1-(1+I_m^{post})^{-n}}{I_m^{post}}$$
 $$\\text{Table: row 0 has } I_0 = C \\cdot I_m^{pre}, \\; DP_0 = C$$
 $$\\text{Row } n \\text{ has } I_n = 0$$`,
 
-  geometric: `**Geometric Payment Loan (Official Formulae)**
-$$\\alpha_r = \\alpha_1 \\cdot q^{r-1}$$
+  geometric: `$$\\alpha_r = \\alpha_1 \\cdot q^{r-1}$$
 $$\\text{If } q \\neq (1+I_m): \\quad \\alpha_1 = \\frac{C}{\\dfrac{1-q^n(1+I_m)^{-n}}{1+I_m-q}}$$
 $$\\text{If } q = (1+I_m): \\quad C = \\alpha_1 \\cdot n \\cdot (1+I_m)^{-1}$$
 $$I_r = I_m \\cdot DP_{r-1}, \\quad A_r = \\alpha_r - I_r, \\quad M_r = C - DP_r$$`,
 
-  leasing: `**Financial Leasing (Official Formulae)**
-$$PV = \\alpha \\cdot \\frac{1-(1+I_m)^{-n}}{I_m} + RV \\cdot (1+I_m)^{-n}$$
+  leasing: `$$PV = \\alpha \\cdot \\frac{1-(1+I_m)^{-n}}{I_m} + RV \\cdot (1+I_m)^{-n}$$
 $$\\alpha = \\frac{PV - RV \\cdot (1+I_m)^{-n}}{\\dfrac{1-(1+I_m)^{-n}}{I_m}}$$
 $$\\text{Total interest} = n \\cdot \\alpha + RV - PV$$`,
 
-  tables: `**Amortization Table Structure**
-$$\\text{Columns: } r, \\; \\alpha_r, \\; I_r, \\; A_r, \\; M_r, \\; DP_r$$
+  tables: `$$\\text{Columns: } r, \\; \\alpha_r, \\; I_r, \\; A_r, \\; M_r, \\; DP_r$$
 $$\\text{Where: } \\alpha_r = I_r + A_r, \\quad M_r = C - DP_r$$
 $$I_r = I_m \\cdot DP_{r-1}, \\quad DP_r = DP_{r-1} - A_r$$`
 };
@@ -1110,7 +1108,7 @@ function getStepFormula(step, type, rows, params) {
   const adjStep = step - 2;
   const rowIdx = Math.floor(adjStep / cellsPerRow) + 1;
   const colIdx = adjStep % cellsPerRow;
-  if (rowIdx >= rows.length) return '**Table complete!**';
+  if (rowIdx >= rows.length) return '$\\textbf{Table complete!}$';
   const row = rows[rowIdx];
   const prev = rows[rowIdx-1];
   const cols = ['alpha','I','A','M','DP'];
@@ -1119,7 +1117,7 @@ function getStepFormula(step, type, rows, params) {
   const ImPre = params.ImPre;
 
   if (type === 'french') {
-    if (col === 'alpha') return `$\\alpha = \\frac{C}{\\frac{1-(1+I_m)^{-n}}{I_m}} = ${row.alpha}$ **(constant)**`;
+    if (col === 'alpha') return `$\\alpha = \\frac{C}{\\frac{1-(1+I_m)^{-n}}{I_m}} = ${row.alpha} \\;\\textbf{(constant)}$`;
     if (col === 'I') return `$I_{${rowIdx}} = DP_{${rowIdx-1}} \\cdot I_m = ${prev.DP} \\times ${fmtN(Im,6)} = ${row.I}$`;
     if (col === 'A') return `$A_{${rowIdx}} = \\alpha - I_{${rowIdx}} = ${row.alpha} - ${row.I} = ${row.A}$`;
     if (col === 'M') return `$M_{${rowIdx}} = M_{${rowIdx-1}} + A_{${rowIdx}} = ${prev.M} + ${row.A} = ${row.M}$`;
@@ -1127,17 +1125,17 @@ function getStepFormula(step, type, rows, params) {
   }
   if (type === 'italian') {
     if (col === 'I') return `$I_{${rowIdx}} = DP_{${rowIdx-1}} \\cdot I_m = ${prev.DP} \\times ${fmtN(Im,6)} = ${row.I}$`;
-    if (col === 'A') return `$A = \\frac{C}{n} = ${row.A}$ **(constant)**`;
+    if (col === 'A') return `$A = \\frac{C}{n} = ${row.A} \\;\\textbf{(constant)}$`;
     if (col === 'alpha') return `$\\alpha_{${rowIdx}} = I_{${rowIdx}} + A = ${row.I} + ${row.A} = ${row.alpha}$`;
     if (col === 'M') return `$M_{${rowIdx}} = ${rowIdx} \\cdot A = ${rowIdx} \\times ${row.A} = ${row.M}$`;
     if (col === 'DP') return `$DP_{${rowIdx}} = (n-${rowIdx}) \\cdot A = ${params.n - rowIdx} \\times ${row.A} = ${row.DP}$`;
   }
   if (type === 'german') {
     const ImPost = ImPre / (1 - ImPre);
-    if (col === 'alpha') return `$\\alpha = \\frac{C}{\\frac{1-(1+I_m^{post})^{-n}}{I_m^{post}}} = ${row.alpha}$ **(constant, using** $I_m^{post}=${fmtN(ImPost*100,4)}\\%$**)**`;
+    if (col === 'alpha') return `$\\alpha = \\frac{C}{\\frac{1-(1+I_m^{post})^{-n}}{I_m^{post}}} = ${row.alpha} \\;\\textbf{(constant, using }I_m^{post}=${fmtN(ImPost*100,4)}\\%\\textbf{)}$`;
     if (col === 'I') {
-      if (rowIdx === params.n) return `$I_{${rowIdx}} = 0$ **(last period — no more pre-paid interest)**`;
-      return `$I_{${rowIdx}} = DP_{${rowIdx}} \\cdot I_m^{pre} = ${row.DP} \\times ${fmtN(ImPre,6)} = ${row.I}$ **(pre-paid)**`;
+      if (rowIdx === params.n) return `$I_{${rowIdx}} = 0 \\;\\textbf{(last period — no more pre-paid interest)}$`;
+      return `$I_{${rowIdx}} = DP_{${rowIdx}} \\cdot I_m^{pre} = ${row.DP} \\times ${fmtN(ImPre,6)} = ${row.I} \\;\\textbf{(pre-paid)}$`;
     }
     if (col === 'A') return `$A_{${rowIdx}} = \\alpha - I_{${rowIdx-1}}^{post} = \\alpha - DP_{${rowIdx-1}} \\cdot I_m^{post} = ${row.A}$`;
     if (col === 'M') return `$M_{${rowIdx}} = C - DP_{${rowIdx}} = ${params.C} - ${row.DP} = ${row.M}$`;
@@ -1151,7 +1149,7 @@ function getStepFormula(step, type, rows, params) {
     if (col === 'DP') return `$DP_{${rowIdx}} = DP_{${rowIdx-1}} - A_{${rowIdx}} = ${prev.DP} - ${row.A} = ${row.DP}$`;
   }
   if (type === 'leasing') {
-    if (col === 'alpha') return `$\\alpha = \\frac{PV - RV(1+I_m)^{-n}}{\\frac{1-(1+I_m)^{-n}}{I_m}} = ${row.alpha}$ **(constant)**`;
+    if (col === 'alpha') return `$\\alpha = \\frac{PV - RV(1+I_m)^{-n}}{\\frac{1-(1+I_m)^{-n}}{I_m}} = ${row.alpha} \\;\\textbf{(constant)}$`;
     if (col === 'I') return `$I_{${rowIdx}} = DP_{${rowIdx-1}} \\cdot I_m = ${prev.DP} \\times ${fmtN(Im,6)} = ${row.I}$`;
     if (col === 'A') return `$A_{${rowIdx}} = \\alpha - I_{${rowIdx}} = ${row.alpha} - ${row.I} = ${row.A}$`;
     if (col === 'M') return `$M_{${rowIdx}} = C - DP_{${rowIdx}} = ${params.C} - ${row.DP} = ${row.M}$`;
